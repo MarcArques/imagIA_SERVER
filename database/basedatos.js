@@ -33,7 +33,7 @@ const Usuari = sequelize.define('Usuari', {
   rol: {
     type: DataTypes.STRING,
     allowNull: false,
-    defaultValue: 'user', // Valor predeterminat per a altres usuaris
+    defaultValue: 'user', 
   },
   password: {
     type: DataTypes.STRING,
@@ -45,7 +45,7 @@ const Usuari = sequelize.define('Usuari', {
   timestamps: false,
 });
 
-// Model 'peticions'
+// Model 'peticions' amb la clau forana 'usuariId'
 const Peticio = sequelize.define('Peticio', {
   id: {
     type: DataTypes.INTEGER,
@@ -64,11 +64,23 @@ const Peticio = sequelize.define('Peticio', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  usuariId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: Usuari, 
+      key: 'id', 
+    },
+  },
 }, {
   tableName: 'peticions',
   freezeTableName: true,
   timestamps: false,
 });
+
+// Relación entre 'Usuari' y 'Peticio' (un usuari pot tenir moltes peticions)
+Usuari.hasMany(Peticio, { foreignKey: 'usuariId' }); 
+Peticio.belongsTo(Usuari, { foreignKey: 'usuariId' }); 
 
 // Funció per sincronitzar les taules i crear l'usuari admin
 async function syncDatabase() {
@@ -91,6 +103,16 @@ async function syncDatabase() {
     });
 
     console.log('Usuari admin creat amb èxit:', adminUser.nickname);
+
+    // Crear una petició per aquest usuari admin
+    const peticio = await Peticio.create({
+      prompt: 'Imagen paisaje',
+      imatges: 'image1.jpg',
+      model: 'Model1',
+      usuariId: adminUser.id, 
+    });
+
+    console.log('Petició creat amb èxit:', peticio.id);
   } catch (error) {
     console.error('Error en la connexió o sincronització de la base de dades:', error);
   } finally {
