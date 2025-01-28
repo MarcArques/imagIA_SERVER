@@ -1,19 +1,19 @@
 // Importar Sequelize
 const { Sequelize, DataTypes } = require('sequelize');
 
-// Connexió a la base de dades MySQL sense usuari ni contrasenya
+// Connexió a la base de dades MySQL
 const sequelize = new Sequelize('imagia3', 'imagia3user', 'im@gia31234', {
   host: 'localhost',
   dialect: 'mysql',
   logging: false, // Desactiva el logging SQL si no ho necessites
 });
 
-// Model 'usuaris'
+// Model 'usuaris' amb el camp 'rol' per a usuari
 const Usuari = sequelize.define('Usuari', {
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
-    primaryKey: true, 
+    primaryKey: true,
   },
   telefon: {
     type: DataTypes.STRING,
@@ -25,12 +25,20 @@ const Usuari = sequelize.define('Usuari', {
     allowNull: false,
     unique: true,
   },
-  email: { 
-
+  email: {
     type: DataTypes.STRING,
     allowNull: false,
     unique: true,
   },
+  rol: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'user', // Valor predeterminat per a altres usuaris
+  },
+  password: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  }
 }, {
   tableName: 'usuaris',
   freezeTableName: true,
@@ -62,7 +70,7 @@ const Peticio = sequelize.define('Peticio', {
   timestamps: false,
 });
 
-// Funció per sincronitzar les taules
+// Funció per sincronitzar les taules i crear l'usuari admin
 async function syncDatabase() {
   try {
     // Verificar connexió
@@ -70,8 +78,19 @@ async function syncDatabase() {
     console.log('Connexió a la base de dades establerta amb èxit.');
 
     // Sincronitzar models i recrear les taules (elimina les dades existents)
-    await sequelize.sync({ force: true }); 
+    await sequelize.sync({ force: true });
     console.log('Models sincronitzats amb èxit.');
+
+    // Crear l'usuari admin amb la contrasenya 1234
+    const adminUser = await Usuari.create({
+      telefon: '000000000',
+      nickname: 'admin',
+      email: 'admin@admin.com',
+      rol: 'admin',
+      password: '1234',
+    });
+
+    console.log('Usuari admin creat amb èxit:', adminUser.nickname);
   } catch (error) {
     console.error('Error en la connexió o sincronització de la base de dades:', error);
   } finally {
@@ -79,5 +98,5 @@ async function syncDatabase() {
   }
 }
 
-// Executar la sincronització de les taules
+// Executar la sincronització de les taules i creació de l'usuari admin
 syncDatabase();
