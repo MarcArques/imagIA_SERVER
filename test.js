@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Configuración del test
-const API_URL = 'http://localhost:3000/api/analitzar-imatge';
+const API_URL = 'https://imagia3.ieti.site/api/analitzar-imatge';
 const imagePath = path.resolve(__dirname, './descarga.png'); // Ajusta la ruta según tu proyecto
 
 // Función para ejecutar el test
@@ -22,7 +22,7 @@ async function testAnalitzarImatge() {
       prompt: 'Describe esta imagen',
       images: [base64Image], // Sustituir por una imagen válida en base64
       stream: false,
-      model: 'llama3.2-vision:latest',
+      model: 'llama3.2-vision',
     };
 
     // Realizar la petición POST
@@ -31,6 +31,8 @@ async function testAnalitzarImatge() {
         'Content-Type': 'application/json',
       },
     });
+
+    console.log(response.data);
 
     // Verificar la respuesta
     assert.strictEqual(response.status, 200, 'El código de estado no es 200');
