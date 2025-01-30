@@ -12,6 +12,8 @@
     "assert": "^2.1.0",
     "axios": "^1.7.9",
     "express": "^4.21.2",
-    "imagia_server": "file:"
+    "imagia_server": "file:",
+    "mysql2": "^3.12.0",
+    "sequelize": "^6.37.5"
   }
 }

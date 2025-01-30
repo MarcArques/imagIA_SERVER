@@ -1,14 +1,37 @@
 // Importación de módulos necesarios
 const axios = require('axios');
 const express = require('express');
+const { Sequelize } = require('sequelize'); // Importamos Sequelize
+
+// Inicializar Express
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 
 const PORT = process.env.PORT || 3000;
 
+// Conexión a la base de datos MySQL usando Sequelize (sin tocar tablas ni crear datos)
+const sequelize = new Sequelize('imagia3', 'imagia3user', 'im@gia31234', {
+  host: 'localhost',
+  dialect: 'mysql',
+  logging: false, // Desactiva el logging de SQL si no lo necesitas
+});
+
+// Verificar la conexión a la base de datos
+async function verificarConexion() {
+  try {
+    await sequelize.authenticate();
+    console.log('Conexión a la base de datos establecida con éxito.');
+  } catch (error) {
+    console.error('No se pudo conectar a la base de datos:', error);
+  }
+}
+
+// Llamamos a la función para verificar la conexión cuando inicie el servidor
+verificarConexion();
+
 // Variables simuladas para almacenar datos en memoria
 let usuarios = [];
-let usuariosAdmin = [];
+let usuariosAdmin = []; // Simulamos administradores
 
 // Función auxiliar para buscar usuario
 const buscarUsuario = (campo, valor) => usuarios.find((user) => user[campo] === valor);
@@ -138,6 +161,46 @@ app.get('/api/admin/usuaris', (req, res) => {
   res.json({ status: 'OK', message: 'Lista de usuarios obtenida correctamente', data: usuarios });
 });
 
+// Validar si el usuario es admin
+app.post('/api/admin/validar', (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ status: 'ERROR', message: 'Faltan parámetros obligatorios' });
+  }
+
+  const usuario = buscarUsuario('email', email);
+  if (!usuario) {
+    return res.status(404).json({ status: 'ERROR', message: 'Usuario no encontrado' });
+  }
+
+  if (usuariosAdmin.includes(email)) {  // Verificamos si el usuario es admin
+    res.json({ status: 'OK', message: 'Usuario administrador validado correctamente' });
+  } else {
+    res.status(403).json({ status: 'ERROR', message: 'El usuario no tiene privilegios de administrador' });
+  }
+});
+
+// Función para añadir un usuario como admin (puede ser implementado de forma más segura)
+app.post('/api/admin/agregar', (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ status: 'ERROR', message: 'Falta el parámetro email' });
+  }
+
+  const usuario = buscarUsuario('email', email);
+  if (!usuario) {
+    return res.status(404).json({ status: 'ERROR', message: 'Usuario no encontrado' });
+  }
+
+  // Agregamos el usuario a la lista de administradores
+  usuariosAdmin.push(email);
+
+  res.json({ status: 'OK', message: 'Usuario agregado como administrador correctamente', data: usuario });
+});
+
+// Ruta para analizar imagen (sin cambios)
 app.post('/api/analitzar-imatge', async (req, res) => {
   console.log('Solicitud recibida en /api/analitzar-imatge:', req.body);
 
@@ -177,7 +240,7 @@ app.post('/api/analitzar-imatge', async (req, res) => {
   }
 });
 
-// Iniciar el servidor
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor ejecutándose en el puerto ${PORT}`);
 });
+
