@@ -11,6 +11,7 @@
   "dependencies": {
     "assert": "^2.1.0",
     "axios": "^1.7.9",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "imagia_server": "file:"
   }
 }
