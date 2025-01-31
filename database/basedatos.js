@@ -8,7 +8,7 @@ const sequelize = new Sequelize('imagia3', 'imagia3user', 'im@gia31234', {
   logging: false, // Desactiva el logging SQL si no ho necessites
 });
 
-// Model 'usuaris' amb el camp 'rol' per a usuari
+// Model 'usuaris' amb els nous camps 'pla' i 'validat'
 const Usuari = sequelize.define('Usuari', {
   id: {
     type: DataTypes.INTEGER,
@@ -38,8 +38,19 @@ const Usuari = sequelize.define('Usuari', {
   password: {
     type: DataTypes.STRING,
     allowNull: false,
+  },
+  pla: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'Free', 
+  },
+  validat: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false, 
   }
-}, {
+  
+  }, {
   tableName: 'usuaris',
   freezeTableName: true,
   timestamps: false,
@@ -50,7 +61,7 @@ const Peticio = sequelize.define('Peticio', {
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
-    primaryKey: true, // Defineix l'ID com a clau primària
+    primaryKey: true, 
   },
   prompt: {
     type: DataTypes.STRING,
@@ -100,6 +111,8 @@ async function syncDatabase() {
       email: 'admin@admin.com',
       rol: 'admin',
       password: '1234',
+      pla: 'Premium',
+      validat: true,
     });
 
     console.log('Usuari admin creat amb èxit:', adminUser.nickname);

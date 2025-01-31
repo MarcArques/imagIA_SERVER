@@ -1,7 +1,7 @@
 // Importación de módulos necesarios
 const axios = require('axios');
 const express = require('express');
-const { Sequelize } = require('sequelize'); // Importamos Sequelize
+const { Sequelize } = require('sequelize'); 
 
 // Inicializar Express
 const app = express();
@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 const sequelize = new Sequelize('imagia3', 'imagia3user', 'im@gia31234', {
   host: 'localhost',
   dialect: 'mysql',
-  logging: false, // Desactiva el logging de SQL si no lo necesitas
+  logging: false, 
 });
 
 // Verificar la conexión a la base de datos
@@ -31,7 +31,7 @@ verificarConexion();
 
 // Variables simuladas para almacenar datos en memoria
 let usuarios = [];
-let usuariosAdmin = []; // Simulamos administradores
+let usuariosAdmin = []; 
 
 // Función auxiliar para buscar usuario
 const buscarUsuario = (campo, valor) => usuarios.find((user) => user[campo] === valor);
@@ -174,7 +174,7 @@ app.post('/api/admin/validar', (req, res) => {
     return res.status(404).json({ status: 'ERROR', message: 'Usuario no encontrado' });
   }
 
-  if (usuariosAdmin.includes(email)) {  // Verificamos si el usuario es admin
+  if (usuariosAdmin.includes(email)) {  
     res.json({ status: 'OK', message: 'Usuario administrador validado correctamente' });
   } else {
     res.status(403).json({ status: 'ERROR', message: 'El usuario no tiene privilegios de administrador' });
