@@ -68,7 +68,7 @@ const Peticio = sequelize.define('peticions', {
     references: { model: Usuari, key: 'id' } },
 }, { timestamps: false });
 
-const Log = sequelize.define('Log', {
+const Log = sequelize.define('logs', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     tag: { type: DataTypes.STRING, allowNull: false }, // Tipo de evento (LOGIN, REGISTER, etc.)
     message: { type: DataTypes.TEXT, allowNull: false },
