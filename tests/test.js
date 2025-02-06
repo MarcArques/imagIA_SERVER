@@ -14,8 +14,8 @@ async function registrarUsuario() {
     console.log('🔍 Registrando usuario de prueba...');
     const usuarioTest = {
         telefon: '683798999',
-        nickname: 'test_user33333',
-        email: 'test_user3333@example.com'
+        nickname: 'test_user333333',
+        email: 'test_user33333@example.com'
     };
 
     try {

@@ -68,7 +68,17 @@ const Peticio = sequelize.define('peticions', {
     references: { model: Usuari, key: 'id' } },
 }, { timestamps: false });
 
+const Log = sequelize.define('Log', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    tag: { type: DataTypes.STRING, allowNull: false }, // Tipo de evento (LOGIN, REGISTER, etc.)
+    message: { type: DataTypes.TEXT, allowNull: false },
+    timestamp: { type: DataTypes.DATE, allowNull: false, defaultValue: Sequelize.NOW },
+  }, {
+    tableName: 'logs',
+    timestamps: false,
+  });
+
 Usuari.hasMany(Peticio, { foreignKey: 'usuariID' });
 Peticio.belongsTo(Usuari, { foreignKey: 'usuariID' });
 
-module.exports = { sequelize, Usuari, Peticio };
+module.exports = { sequelize, Usuari, Peticio, Log };
