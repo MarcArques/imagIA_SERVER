@@ -232,7 +232,7 @@ app.post('/api/admin/usuaris/quota/actualitzar', async (req, res) => {
 // **Obtener lista de usuarios**
 app.get('/api/admin/usuaris', async (req, res) => {
   try {
-      const token = req.headers.authorization?.split(' ')[1];
+    const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : null;
 
       if (!token) {
           return res.status(401).json({ status: 'ERROR', message: 'No autorizado' });

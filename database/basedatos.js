@@ -12,15 +12,17 @@ const Usuari = sequelize.define('usuaris', {
     autoIncrement: true, 
     primaryKey: true },
 
+  nickname: {
+    type: DataTypes.STRING,
+    allowNull: false },
+
   telefon: { 
     type: DataTypes.STRING, 
-    allowNull: false, 
-    unique: true },
+    allowNull: false },
 
   email: { 
     type: DataTypes.STRING, 
-    allowNull: false, 
-    unique: true },
+    allowNull: false },
 
   rol: { 
     type: DataTypes.STRING, 
@@ -34,6 +36,11 @@ const Usuari = sequelize.define('usuaris', {
   apiToken: { 
     type: DataTypes.STRING, 
     allowNull: true },
+
+  pla: { 
+    type: DataTypes.STRING, 
+    allowNull: true, 
+    defaultValue: 'free' },
 
 }, { timestamps: false });
 
