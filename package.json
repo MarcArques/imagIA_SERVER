@@ -1,0 +1,22 @@
+{
+  "name": "imagia_server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MarcArques/ImagIA_SERVER.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MarcArques/ImagIA_SERVER/issues"
+  },
+  "homepage": "https://github.com/MarcArques/ImagIA_SERVER#readme",
+  "description": ""
+}
