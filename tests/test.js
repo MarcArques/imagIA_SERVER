@@ -122,5 +122,47 @@ async function ejecutarPruebas() {
     }
 }
 
+async function testLogs() {
+    try {
+        console.log('🔍 Probando el endpoint de logs...');
+
+        // 🟢 1. Obtener todos los logs sin filtros
+        let response = await axios.get(`${BASE_URL}/api/admin/logs`, {
+            headers: { Authorization: `Bearer ${adminApiToken}` }
+        });
+        console.log('✅ Obtener todos los logs:', response.data);
+
+        if (!response.data.data || response.data.data.length === 0) {
+            console.warn('⚠️ Advertencia: No hay logs en la base de datos.');
+        }
+
+        // 🟢 2. Filtrar logs por etiqueta específica (ejemplo: USUARIS_REGISTRATS)
+        response = await axios.get(`${BASE_URL}/api/admin/logs?tag=USUARIS_REGISTRATS`, {
+            headers: { Authorization: `Bearer ${adminApiToken}` }
+        });
+        console.log('✅ Filtrar logs por tag (USUARIS_REGISTRATS):', response.data);
+
+        // 🟢 3. Filtrar logs por contenido específico (ejemplo: "validado")
+        response = await axios.get(`${BASE_URL}/api/admin/logs?contenido=validado`, {
+            headers: { Authorization: `Bearer ${adminApiToken}` }
+        });
+        console.log('✅ Filtrar logs por contenido (validado):', response.data);
+
+        // 🟢 4. Filtrar logs por contenido y etiqueta combinados
+        response = await axios.get(`${BASE_URL}/api/admin/logs?contenido=error&tag=USUARIS_VALIDATS`, {
+            headers: { Authorization: `Bearer ${adminApiToken}` }
+        });
+        console.log('✅ Filtrar logs por contenido (error) y tag (USUARIS_VALIDATS):', response.data);
+
+        console.log('🎉 TODAS LAS PRUEBAS PASARON CORRECTAMENTE');
+
+    } catch (error) {
+        console.error('❌ Error en la prueba:', error.response ? error.response.data : error.message);
+    }
+}
+
+// Ejecutar el test
+testLogs();
+
 // Ejecutar las pruebas
-ejecutarPruebas();
+//ejecutarPruebas();

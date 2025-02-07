@@ -433,7 +433,53 @@ app.get('/api/admin/logs', async (req, res) => {
     }
 });
 
-
+app.get('/api/admin/stats', async (req, res) => {
+    try {
+      const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : null;
+  
+      if (!token) {
+        return res.status(401).json({ status: 'ERROR', message: 'No autorizado' });
+      }
+  
+      const admin = await Usuari.findOne({ where: { apiToken: token, rol: 'admin' } });
+      if (!admin) {
+        return res.status(403).json({ status: 'ERROR', message: 'Acceso denegado' });
+      }
+  
+      // Obtener la hora actual y restarle una hora
+      const lastHour = new Date();
+      lastHour.setHours(lastHour.getHours() - 1);
+  
+      const interaccionesUltimaHora = await Log.count({
+        where: {
+          timestamp: {
+            [Op.gte]: lastHour, 
+          },
+        },
+      });
+  
+      const eventos = await Log.findAll({
+        where: {
+          timestamp: {
+            [Op.gte]: lastHour,
+          },
+        },
+        attributes: ['tag', 'mensaje', 'timestamp'],
+        order: [['timestamp', 'DESC']],
+      });
+  
+      res.json({
+        status: 'OK',
+        message: 'Estadísticas de la última hora obtenidas correctamente',
+        total_interacciones: interaccionesUltimaHora,
+        eventos,
+      });
+    } catch (error) {
+      console.error('Error en /api/admin/stats:', error.message);
+      res.status(500).json({ status: 'ERROR', message: 'Error interno del servidor' });
+    }
+  });
+  
 app.post('/api/analitzar-imatge', async (req, res) => {
     const transaction = await sequelize.transaction(); 
 
