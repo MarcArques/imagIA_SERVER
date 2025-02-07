@@ -70,7 +70,7 @@ const Peticio = sequelize.define('peticions', {
 
 const Log = sequelize.define('logs', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    tag: { type: DataTypes.STRING, allowNull: false }, // Tipo de evento (LOGIN, REGISTER, etc.)
+    tag: { type: DataTypes.STRING, allowNull: false }, 
     message: { type: DataTypes.TEXT, allowNull: false },
     timestamp: { type: DataTypes.DATE, allowNull: false, defaultValue: Sequelize.NOW },
   }, {

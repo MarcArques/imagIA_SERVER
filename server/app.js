@@ -1,4 +1,3 @@
-                                  
 require('dotenv').config(); 
 const axios = require('axios');
 const express = require('express');
@@ -398,6 +397,41 @@ app.post('/api/admin/usuaris/login', async (req, res) => {
     }
 });
 
+app.get('/api/admin/logs', async (req, res) => {
+    try {
+        const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : null;
+
+        if (!token) {
+            return res.status(401).json({ status: 'ERROR', message: 'No autorizado' });
+        }
+
+        const admin = await Usuari.findOne({ where: { apiToken: token, rol: 'admin' } });
+        if (!admin) {
+            return res.status(403).json({ status: 'ERROR', message: 'Acceso denegado' });
+        }
+
+        const { contenido, tag } = req.query;
+        let whereClause = {};
+
+        if (contenido) {
+            whereClause.mensaje = { [Op.like]: `%${contenido}%` };
+        }
+
+        if (tag) {
+            whereClause.tag = tag;
+        }
+
+        const logs = await Log.findAll({
+            where: whereClause,
+            order: [['timestamp', 'DESC']] 
+        });
+
+        res.json({ status: 'OK', message: 'Logs obtenidos correctamente', data: logs });
+    } catch (error) {
+        console.error('Error en /api/admin/logs:', error.message);
+        res.status(500).json({ status: 'ERROR', message: 'Error interno del servidor' });
+    }
+});
 
 
 app.post('/api/analitzar-imatge', async (req, res) => {
