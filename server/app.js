@@ -213,7 +213,11 @@ app.get('/api/admin/usuaris/quota', async (req, res) => {
       const { telefon, nickname, email } = req.query;
 
       if (!telefon && !nickname && !email) {
-          await Log.create({ tag: "ADMIN_QUOTA", mensaje: "Intento de consulta sin parámetros", timestamp: new Date() });
+          await Log.create({ 
+              tag: "ADMIN_QUOTA", 
+              mensaje: "Intento de consulta sin parámetros", 
+              timestamp: new Date() 
+          });
           return res.status(400).json({ status: 'ERROR', message: 'Se requiere al menos un parámetro (telefon, nickname o email).' });
       }
 
@@ -227,23 +231,35 @@ app.get('/api/admin/usuaris/quota', async (req, res) => {
       }
 
       if (!usuario) {
-          await Log.create({ tag: "ADMIN_QUOTA", mensaje: `Consulta fallida: usuario no encontrado (telefon=${telefon}, nickname=${nickname}, email=${email})`, timestamp: new Date() });
+          await Log.create({ 
+              tag: "ADMIN_QUOTA", 
+              mensaje: `Consulta fallida: usuario no encontrado (telefon=${telefon || 'N/A'}, nickname=${nickname || 'N/A'}, email=${email || 'N/A'})`, 
+              timestamp: new Date() 
+          });
           return res.status(404).json({ status: 'ERROR', message: 'Usuario no encontrado' });
       }
 
       // Definir cuota total según el plan del usuario
       const cuotaTotal = usuario.pla === 'Premium' ? DEFAULT_PREMIUM_QUOTA : DEFAULT_FREE_QUOTA;
 
-      // Verificar si se debe resetear la cuota
+      // Verificar si se debe resetear la cuota diaria
       const hoy = new Date().toISOString().split('T')[0];
       if (!usuario.ultimaActualizacionQuota || usuario.ultimaActualizacionQuota !== hoy) {
           usuario.quotaDisponible = cuotaTotal; // Resetear la cuota
           usuario.ultimaActualizacionQuota = hoy;
           await usuario.save();
-          await Log.create({ tag: "ADMIN_QUOTA", mensaje: `Cuota reseteada para usuario ${usuario.telefon}. Nueva cuota: ${cuotaTotal}`, timestamp: new Date() });
+          await Log.create({ 
+              tag: "ADMIN_QUOTA", 
+              mensaje: `Cuota reseteada para usuario ${usuario.telefon}. Nueva cuota: ${cuotaTotal}`, 
+              timestamp: new Date() 
+          });
       }
 
-      await Log.create({ tag: "ADMIN_QUOTA", mensaje: `Cuota obtenida para usuario ${usuario.telefon}. Disponible: ${usuario.quotaDisponible}`, timestamp: new Date() });
+      await Log.create({ 
+          tag: "ADMIN_QUOTA", 
+          mensaje: `Cuota obtenida para usuario ${usuario.telefon}. Disponible: ${usuario.quotaDisponible}`, 
+          timestamp: new Date() 
+      });
 
       res.json({ 
           status: 'OK', 
@@ -253,10 +269,15 @@ app.get('/api/admin/usuaris/quota', async (req, res) => {
 
   } catch (error) {
       console.error('Error en /api/admin/usuaris/quota:', error.message);
-      await Log.create({ tag: "ADMIN_QUOTA", mensaje: `Error al obtener cuota: ${error.message}`, timestamp: new Date() });
+      await Log.create({ 
+          tag: "ADMIN_QUOTA", 
+          mensaje: error.message ? `Error al obtener cuota: ${error.message}` : "Error desconocido al obtener cuota", 
+          timestamp: new Date() 
+      });
       res.status(500).json({ status: 'ERROR', message: 'Error interno al obtener la cuota' });
   }
 });
+
 
 
 app.post('/api/admin/usuaris/quota/actualitzar', async (req, res) => {
