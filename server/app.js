@@ -5,7 +5,7 @@ const { Usuari, sequelize, Log } = require('../database/basedatos');
 const app = express();
 const crypto = require('crypto');
 const { Op } = require("sequelize");
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
@@ -80,7 +80,7 @@ app.post('/api/usuaris/registrar', async (req, res) => {
       const codi_validacio = generarCodigoValidacion();
       codigoVerificacionTemporal[telefon] = codi_validacio;
 
-      // Intentar enviar SMS
+      // Enviar SMS de verificación
       const smsURL = `http://192.168.1.16:8000/api/sendsms/`;
       const smsParams = { 
           api_token: process.env.SMS_API_TOKEN,
@@ -89,49 +89,30 @@ app.post('/api/usuaris/registrar', async (req, res) => {
           text: `Tu código de verificación es: ${codi_validacio}`,
       };
 
-      let smsEnviado = false;
       try {
-          const smsResponse = await axios.get(smsURL, { params: smsParams });
-          if (smsResponse.status === 200) {
-              smsEnviado = true;
-              await Log.create({ tag: "USUARIS_REGISTRATS", message: `SMS enviado a ${telefon}`, timestamp: new Date() }, { transaction });
-          } else {
-              throw new Error(`Respuesta inesperada del servidor SMS: ${smsResponse.status}`);
-          }
+          await axios.get(smsURL, { params: smsParams });
+          await Log.create({ tag: "USUARIS_REGISTRATS", message: `SMS enviado a ${telefon}`, timestamp: new Date() }, { transaction });
       } catch (smsError) {
           await Log.create({ tag: "USUARIS_REGISTRATS", message: `Error al enviar SMS a ${telefon}: ${smsError.message}`, timestamp: new Date() }, { transaction });
           await transaction.rollback();
           return res.status(500).json({ status: 'ERROR', message: 'No se pudo enviar el SMS de verificación' });
       }
 
-      if (!smsEnviado) {
-          await transaction.rollback();
-          return res.status(500).json({ status: 'ERROR', message: 'No se pudo enviar el SMS de verificación' });
-      }
-
       // Crear usuario en la base de datos
-      try {
-          await Usuari.create({
-              telefon,
-              nickname,
-              email,
-              rol: 'user',
-              password: '',
-              pla: 'Free',
-              apiToken: null,
-          }, { transaction });
+      await Usuari.create({
+          telefon,
+          nickname,
+          email,
+          rol: 'user',
+          password: '',
+          pla: 'Free',
+          apiToken: null,
+      }, { transaction });
 
-          await Log.create({ tag: "USUARIS_REGISTRATS", message: `Usuario ${telefon} registrado exitosamente`, timestamp: new Date() }, { transaction });
+      await Log.create({ tag: "USUARIS_REGISTRATS", message: `Usuario ${telefon} registrado exitosamente`, timestamp: new Date() }, { transaction });
 
-          await transaction.commit();
-          res.json({ status: 'OK', message: 'Usuario registrado correctamente. Verifique su teléfono con el código recibido.' });
-
-      } catch (error) {
-          await Log.create({ tag: "USUARIS_REGISTRATS", message: `Error al crear usuario ${telefon}: ${error.message}`, timestamp: new Date() }, { transaction });
-          await transaction.rollback();
-          console.error('Error en la creación del usuario:', error.message);
-          return res.status(500).json({ status: 'ERROR', message: 'Error interno al registrar el usuario' });
-      }
+      await transaction.commit();
+      res.json({ status: 'OK', message: 'Usuario registrado correctamente. Verifique su teléfono con el código recibido.' });
 
   } catch (error) {
       await transaction.rollback();
@@ -428,33 +409,32 @@ app.get('/api/admin/usuaris', async (req, res) => {
 
 // **Login de administrador**
 app.post('/api/admin/usuaris/login', async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
   try {
       const { email, contrasenya } = req.body;
 
       if (!email || !contrasenya) {
-          await Log.create({ tag: "ADMIN_LOGIN", message: "Intento de login sin parámetros obligatorios", timestamp: new Date() });
+          await Log.create({ tag: "ADMIN_LOGIN", message: "Intento de login sin parámetros obligatorios", timestamp: new Date() }, { transaction });
+          await transaction.commit();
           return res.status(400).json({ status: 'ERROR', message: 'Faltan parámetros obligatorios' });
       }
 
-      const admin = await Usuari.findOne({ where: { email, password: contrasenya, rol: 'admin' } });
+      const admin = await Usuari.findOne({ where: { email, rol: 'admin' } });
 
       if (!admin || !bcrypt.compareSync(contrasenya, admin.password)) {
-        await Log.create({ tag: "ADMIN_LOGIN", message: `Intento de login fallido para ${email}`, timestamp: new Date() });
-        return res.status(403).json({ status: 'ERROR', message: 'Acceso denegado' });
-      }
-
-      // Comparar la contraseña encriptada
-      const contrasenyaValida = await bcrypt.compare(contrasenya, admin.password);
-      if (!contrasenyaValida) {
-          await Log.create({ tag: "ADMIN_LOGIN", message: `Intento de login fallido para ${email}: contraseña incorrecta`, timestamp: new Date() });
+          await Log.create({ tag: "ADMIN_LOGIN", message: `Intento de login fallido para ${email}`, timestamp: new Date() }, { transaction });
+          await transaction.commit();
           return res.status(403).json({ status: 'ERROR', message: 'Acceso denegado' });
       }
 
-      await Log.create({ tag: "ADMIN_LOGIN", message: `Inicio de sesión exitoso para admin ID: ${admin.id}`, timestamp: new Date() });
+      await Log.create({ tag: "ADMIN_LOGIN", message: `Inicio de sesión exitoso para ${email}`, timestamp: new Date() }, { transaction });
 
+      await transaction.commit();
       res.json({ status: 'OK', message: 'Inicio de sesión exitoso', apiToken: admin.apiToken });
 
   } catch (error) {
+      await transaction.rollback();
       console.error('Error en /api/admin/usuaris/login:', error.message);
       await Log.create({ tag: "ADMIN_LOGIN", message: `Error en autenticación: ${error.message}`, timestamp: new Date() });
       res.status(500).json({ status: 'ERROR', message: 'Error interno del servidor' });
