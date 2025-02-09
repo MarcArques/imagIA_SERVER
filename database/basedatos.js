@@ -128,7 +128,7 @@ const Log = sequelize.define('logs', {
     allowNull: false 
   }, 
 
-  message: { 
+  mensaje: { 
     type: DataTypes.TEXT, 
     allowNull: false 
   },

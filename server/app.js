@@ -64,7 +64,8 @@ app.post('/api/usuaris/registrar', async (req, res) => {
         const { telefon, nickname, email, password } = req.body;
 
         if (!telefon || !nickname || !email || !password) {
-            await Log.create({ tag: "USUARIS_REGISTRATS", mensaje: "Faltan parámetros en el registro", timestamp: new Date() });
+            await Log.create({ tag: "USUARIS_REGISTRATS", mensaje: "Faltan parámetros en el registro", timestamp: new Date() }, { transaction });
+            await transaction.rollback();
             return res.status(400).json({ status: 'ERROR', message: 'Faltan parámetros obligatorios' });
         }
 
@@ -91,9 +92,9 @@ app.post('/api/usuaris/registrar', async (req, res) => {
 
         try {
             await axios.get(smsURL, { params: smsParams });
-            await Log.create({ tag: "USUARIS_REGISTRATS", message: `SMS enviado a ${telefon}`, timestamp: new Date() }, { transaction });
+            await Log.create({ tag: "USUARIS_REGISTRATS", mensaje: `SMS enviado a ${telefon}`, timestamp: new Date() }, { transaction });
         } catch (smsError) {
-            await Log.create({ tag: "USUARIS_REGISTRATS", message: `Error al enviar SMS a ${telefon}: ${smsError.message}`, timestamp: new Date() }, { transaction });
+            await Log.create({ tag: "USUARIS_REGISTRATS", mensaje: `Error al enviar SMS a ${telefon}: ${smsError.message}`, timestamp: new Date() }, { transaction });
             await transaction.rollback();
             return res.status(500).json({ status: 'ERROR', message: 'No se pudo enviar el SMS de verificación' });
         }
@@ -112,14 +113,14 @@ app.post('/api/usuaris/registrar', async (req, res) => {
             apiToken: null,
         }, { transaction });
 
-        await Log.create({ tag: "USUARIS_REGISTRATS", message: `Usuario ${telefon} registrado exitosamente`, timestamp: new Date() }, { transaction });
+        await Log.create({ tag: "USUARIS_REGISTRATS", mensaje: `Usuario ${telefon} registrado exitosamente`, timestamp: new Date() }, { transaction });
 
         await transaction.commit();
         res.json({ status: 'OK', message: 'Usuario registrado correctamente. Verifique su teléfono con el código recibido.' });
 
     } catch (error) {
         await transaction.rollback();
-        await Log.create({ tag: "USUARIS_REGISTRATS", message: `Error general en registro: ${error.message}`, timestamp: new Date() });
+        await Log.create({ tag: "USUARIS_REGISTRATS", mensaje: `Error general en registro: ${error.message}`, timestamp: new Date() });
         console.error('Error en /api/usuaris/registrar:', error.message);
         return res.status(500).json({ status: 'ERROR', message: 'Error interno del servidor' });
     }
@@ -134,7 +135,7 @@ app.post('/api/usuaris/validar', async (req, res) => {
       const { telefon, codi_validacio } = req.body;
 
       if (!telefon || !codi_validacio) {
-          await Log.create({ tag: "USUARIS_VALIDATS", message: "Faltan parámetros en la validación", timestamp: new Date() }, { transaction });
+          await Log.create({ tag: "USUARIS_VALIDATS", mensaje: "Faltan parámetros en la validación", timestamp: new Date() }, { transaction });
           await transaction.rollback();
           return res.status(400).json({ status: 'ERROR', message: 'Faltan parámetros obligatorios' });
       }
@@ -142,13 +143,13 @@ app.post('/api/usuaris/validar', async (req, res) => {
       const usuario = await Usuari.findOne({ where: { telefon } });
 
       if (!usuario) {
-          await Log.create({ tag: "USUARIS_VALIDATS", message: `Intento de validación fallido: usuario ${telefon} no encontrado`, timestamp: new Date() }, { transaction });
+          await Log.create({ tag: "USUARIS_VALIDATS", mensaje: `Intento de validación fallido: usuario ${telefon} no encontrado`, timestamp: new Date() }, { transaction });
           await transaction.rollback();
           return res.status(404).json({ status: 'ERROR', message: 'Usuario no encontrado' });
       }
 
       if (codigoVerificacionTemporal[telefon] !== codi_validacio) {
-          await Log.create({ tag: "USUARIS_VALIDATS", message: `Código incorrecto para ${telefon}`, timestamp: new Date() }, { transaction });
+          await Log.create({ tag: "USUARIS_VALIDATS", mensaje: `Código incorrecto para ${telefon}`, timestamp: new Date() }, { transaction });
           await transaction.rollback();
           return res.status(400).json({ status: 'ERROR', message: 'Código incorrecto' });
       }
@@ -158,7 +159,7 @@ app.post('/api/usuaris/validar', async (req, res) => {
       usuario.apiToken = nuevoApiToken;
       await usuario.save({ transaction });
 
-      await Log.create({ tag: "USUARIS_VALIDATS", message: `Usuario ${telefon} validado correctamente. API Token generado.`, timestamp: new Date() }, { transaction });
+      await Log.create({ tag: "USUARIS_VALIDATS", mensaje: `Usuario ${telefon} validado correctamente. API Token generado.`, timestamp: new Date() }, { transaction });
 
       // Eliminar el código de verificación usado
       delete codigoVerificacionTemporal[telefon];
@@ -168,7 +169,7 @@ app.post('/api/usuaris/validar', async (req, res) => {
 
   } catch (error) {
       await transaction.rollback();
-      await Log.create({ tag: "USUARIS_VALIDATS", message: `Error en validación: ${error.message}`, timestamp: new Date() });
+      await Log.create({ tag: "USUARIS_VALIDATS", mensaje: `Error en validación: ${error.message}`, timestamp: new Date() });
       console.error('Error en la validación:', error.message);
       res.status(500).json({ status: 'ERROR', message: 'Error interno del servidor' });
   }
@@ -292,7 +293,7 @@ app.post('/api/admin/usuaris/quota/actualitzar', async (req, res) => {
       const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : null;
 
       if (!token) {
-          await Log.create({ tag: "ADMIN_QUOTA_UPDATE", message: "Intento de actualización sin autenticación", timestamp: new Date() }, { transaction });
+          await Log.create({ tag: "ADMIN_QUOTA_UPDATE", mensaje: "Intento de actualización sin autenticación", timestamp: new Date() }, { transaction });
           await transaction.rollback();
           return res.status(401).json({ status: 'ERROR', message: 'No autorizado' });
       }
@@ -300,7 +301,7 @@ app.post('/api/admin/usuaris/quota/actualitzar', async (req, res) => {
       const admin = await Usuari.findOne({ where: { apiToken: token, rol: 'admin' } });
 
       if (!admin) {
-          await Log.create({ tag: "ADMIN_QUOTA_UPDATE", message: `Acceso denegado para el token ${token}`, timestamp: new Date() }, { transaction });
+          await Log.create({ tag: "ADMIN_QUOTA_UPDATE", mensaje: `Acceso denegado para el token ${token}`, timestamp: new Date() }, { transaction });
           await transaction.rollback();
           return res.status(403).json({ status: 'ERROR', message: 'Acceso denegado' });
       }
@@ -329,7 +330,7 @@ app.post('/api/admin/usuaris/quota/actualitzar', async (req, res) => {
       });
 
       if (!usuario) {
-          await Log.create({ tag: "ADMIN_QUOTA_UPDATE", message: `Intento de actualización fallido: usuario no encontrado (telefon=${telefon}, nickname=${nickname}, email=${email})`, timestamp: new Date() }, { transaction });
+          await Log.create({ tag: "ADMIN_QUOTA_UPDATE", mensaje: `Intento de actualización fallido: usuario no encontrado (telefon=${telefon}, nickname=${nickname}, email=${email})`, timestamp: new Date() }, { transaction });
           await transaction.rollback();
           return res.status(404).json({ status: 'ERROR', message: 'Usuario no encontrado' });
       }
@@ -351,7 +352,7 @@ app.post('/api/admin/usuaris/quota/actualitzar', async (req, res) => {
 
       await usuario.save({ transaction });
 
-      await Log.create({ tag: "ADMIN_QUOTA_UPDATE", message: `Cuota actualizada para ${usuario.telefon} (${cambios.join(", ")})`, timestamp: new Date() }, { transaction });
+      await Log.create({ tag: "ADMIN_QUOTA_UPDATE", mensaje: `Cuota actualizada para ${usuario.telefon} (${cambios.join(", ")})`, timestamp: new Date() }, { transaction });
 
       await transaction.commit();
       res.json({ status: 'OK', message: 'Cuota de usuario actualizada', data: usuario });
@@ -359,7 +360,7 @@ app.post('/api/admin/usuaris/quota/actualitzar', async (req, res) => {
   } catch (error) {
       await transaction.rollback();
       console.error('Error al actualizar la cuota del usuario:', error);
-      await Log.create({ tag: "ADMIN_QUOTA_UPDATE", message: `Error en actualización de cuota: ${error.message}`, timestamp: new Date() });
+      await Log.create({ tag: "ADMIN_QUOTA_UPDATE", mensaje: `Error en actualización de cuota: ${error.message}`, timestamp: new Date() });
       res.status(500).json({ status: 'ERROR', message: 'Error interno al actualizar la cuota' });
   }
 });
@@ -371,14 +372,14 @@ app.get('/api/admin/usuaris', async (req, res) => {
       const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : null;
 
       if (!token) {
-          await Log.create({ tag: "ADMIN_USUARIS_LIST", message: "Intento de acceso sin autenticación", timestamp: new Date() });
+          await Log.create({ tag: "ADMIN_USUARIS_LIST", mensaje: "Intento de acceso sin autenticación", timestamp: new Date() });
           return res.status(401).json({ status: 'ERROR', message: 'No autorizado' });
       }
 
       const admin = await Usuari.findOne({ where: { apiToken: token, rol: 'admin' } });
 
       if (!admin) {
-          await Log.create({ tag: "ADMIN_USUARIS_LIST", message: `Acceso denegado para usuario con token ${token}`, timestamp: new Date() });
+          await Log.create({ tag: "ADMIN_USUARIS_LIST", mensaje: `Acceso denegado para usuario con token ${token}`, timestamp: new Date() });
           return res.status(403).json({ status: 'ERROR', message: 'Acceso denegado' });
       }
 
@@ -390,13 +391,13 @@ app.get('/api/admin/usuaris', async (req, res) => {
           return res.status(204).json({ status: 'OK', message: 'No hay usuarios registrados' });
       }
 
-      await Log.create({ tag: "ADMIN_USUARIS_LIST", message: `Lista de usuarios obtenida por admin ID: ${admin.id}`, timestamp: new Date() });
+      await Log.create({ tag: "ADMIN_USUARIS_LIST", mensaje: `Lista de usuarios obtenida por admin ID: ${admin.id}`, timestamp: new Date() });
 
       res.json({ status: 'OK', message: 'Lista de usuarios obtenida', data: usuarios });
 
   } catch (error) {
       console.error('Error en /api/admin/usuaris:', error.message);
-      await Log.create({ tag: "ADMIN_USUARIS_LIST", message: `Error al obtener lista de usuarios: ${error.message}`, timestamp: new Date() });
+      await Log.create({ tag: "ADMIN_USUARIS_LIST", mensaje: `Error al obtener lista de usuarios: ${error.message}`, timestamp: new Date() });
       res.status(500).json({ status: 'ERROR', message: 'Error interno del servidor' });
   }
 });
@@ -410,7 +411,7 @@ app.post('/api/admin/usuaris/login', async (req, res) => {
       const { email, contrasenya } = req.body;
 
       if (!email || !contrasenya) {
-          await Log.create({ tag: "ADMIN_LOGIN", message: "Intento de login sin parámetros obligatorios", timestamp: new Date() }, { transaction });
+          await Log.create({ tag: "ADMIN_LOGIN", mensaje: "Intento de login sin parámetros obligatorios", timestamp: new Date() }, { transaction });
           await transaction.commit();
           return res.status(400).json({ status: 'ERROR', message: 'Faltan parámetros obligatorios' });
       }
@@ -418,12 +419,12 @@ app.post('/api/admin/usuaris/login', async (req, res) => {
       const admin = await Usuari.findOne({ where: { email, rol: 'admin' } });
 
       if (!admin || !bcrypt.compareSync(contrasenya, admin.password)) {
-          await Log.create({ tag: "ADMIN_LOGIN", message: `Intento de login fallido para ${email}`, timestamp: new Date() }, { transaction });
+          await Log.create({ tag: "ADMIN_LOGIN", mensaje: `Intento de login fallido para ${email}`, timestamp: new Date() }, { transaction });
           await transaction.commit();
           return res.status(403).json({ status: 'ERROR', message: 'Acceso denegado' });
       }
 
-      await Log.create({ tag: "ADMIN_LOGIN", message: `Inicio de sesión exitoso para ${email}`, timestamp: new Date() }, { transaction });
+      await Log.create({ tag: "ADMIN_LOGIN", mensaje: `Inicio de sesión exitoso para ${email}`, timestamp: new Date() }, { transaction });
 
       await transaction.commit();
       res.json({ status: 'OK', message: 'Inicio de sesión exitoso', apiToken: admin.apiToken });
@@ -431,7 +432,7 @@ app.post('/api/admin/usuaris/login', async (req, res) => {
   } catch (error) {
       await transaction.rollback();
       console.error('Error en /api/admin/usuaris/login:', error.message);
-      await Log.create({ tag: "ADMIN_LOGIN", message: `Error en autenticación: ${error.message}`, timestamp: new Date() });
+      await Log.create({ tag: "ADMIN_LOGIN", mensaje: `Error en autenticación: ${error.message}`, timestamp: new Date() });
       res.status(500).json({ status: 'ERROR', message: 'Error interno del servidor' });
   }
 });
