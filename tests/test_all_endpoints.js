@@ -7,6 +7,7 @@ let adminApiToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNz
 let testTelefon = '683798999';
 let testEmail = 'test_user@example.com';
 let testNickname = 'test_user';
+let testPassword = 'password123'; // Nueva contraseña para el test
 let adminEmail = 'admin@admin.com';
 let adminPassword = '1234';
 
@@ -19,12 +20,13 @@ async function runTests() {
     try {
         console.log('🔍 Iniciando pruebas de la API...\n');
 
-        // 🟢 1. Registrar un usuario
+        // 🟢 1. Registrar un usuario con contraseña
         console.log('📌 Registrando usuario...');
         await axios.post(`${BASE_URL}/api/usuaris/registrar`, {
             telefon: testTelefon,
             nickname: testNickname,
-            email: testEmail
+            email: testEmail,
+            password: testPassword // Ahora el test envía una contraseña
         });
 
         console.log('✅ Usuario registrado correctamente.\n');

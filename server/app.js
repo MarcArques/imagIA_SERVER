@@ -8,6 +8,7 @@ const { Op } = require("sequelize");
 const bcrypt = require('bcryptjs');
 app.use(express.json());
 
+const SALT_ROUNDS = 10; 
 const PORT = process.env.PORT || 3000;
 const DEFAULT_FREE_QUOTA = 20;
 const DEFAULT_PREMIUM_QUOTA = 40; 
@@ -60,9 +61,9 @@ const verificarToken = async (req, res, next) => {
 app.post('/api/usuaris/registrar', async (req, res) => {
   const transaction = await sequelize.transaction(); // Iniciar transacción
   try {
-      const { telefon, nickname, email } = req.body;
+      const { telefon, nickname, email, password } = req.body;
 
-      if (!telefon || !nickname || !email) {
+      if (!telefon || !nickname || !email || !password) {
           await Log.create({ tag: "USUARIS_REGISTRATS", message: "Faltan parámetros en el registro", timestamp: new Date() }, { transaction });
           await transaction.rollback();
           return res.status(400).json({ status: 'ERROR', message: 'Faltan parámetros obligatorios' });
@@ -75,6 +76,9 @@ app.post('/api/usuaris/registrar', async (req, res) => {
           await transaction.rollback();
           return res.status(400).json({ status: 'ERROR', message: 'El usuario ya está registrado' });
       }
+
+      // Hashear la contraseña antes de guardarla
+      const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
       // Generar código de validación y guardarlo en memoria temporal
       const codi_validacio = generarCodigoValidacion();
@@ -98,13 +102,13 @@ app.post('/api/usuaris/registrar', async (req, res) => {
           return res.status(500).json({ status: 'ERROR', message: 'No se pudo enviar el SMS de verificación' });
       }
 
-      // Crear usuario en la base de datos
+      // Crear usuario en la base de datos con la contraseña hasheada
       await Usuari.create({
           telefon,
           nickname,
           email,
           rol: 'user',
-          password: '',
+          password: hashedPassword,
           pla: 'Free',
           apiToken: null,
       }, { transaction });
