@@ -117,7 +117,7 @@ app.post('/api/usuaris/registrar', async (req, res) => {
               email,
               rol: 'user',
               password: '',
-              pla: 'free',
+              pla: 'Free',
               apiToken: null,
           }, { transaction });
 
@@ -174,7 +174,7 @@ app.post('/api/usuaris/validar', async (req, res) => {
           api_token: process.env.SMS_API_TOKEN,
           username: process.env.SMS_USERNAME,   
           receiver: telefon,
-          text: `Confirmación: Código ${codi_validacio} recibido correctamente.`,
+          text: `Confirmación: usuario verificado`,
       };
 
       let smsEnviado = false;
@@ -281,7 +281,7 @@ app.get('/api/admin/usuaris/quota', async (req, res) => {
       }
 
       // Definir cuota total según el plan del usuario
-      const cuotaTotal = usuario.pla === 'premium' ? DEFAULT_PREMIUM_QUOTA : DEFAULT_FREE_QUOTA;
+      const cuotaTotal = usuario.pla === 'Premium' ? DEFAULT_PREMIUM_QUOTA : DEFAULT_FREE_QUOTA;
 
       // Verificar si se debe resetear la cuota
       const hoy = new Date().toISOString().split('T')[0];
@@ -436,11 +436,11 @@ app.post('/api/admin/usuaris/login', async (req, res) => {
           return res.status(400).json({ status: 'ERROR', message: 'Faltan parámetros obligatorios' });
       }
 
-      const admin = await Usuari.findOne({ where: { email, rol: 'admin' } });
+      const admin = await Usuari.findOne({ where: { email, password: contrasenya, rol: 'admin' } });
 
-      if (!admin) {
-          await Log.create({ tag: "ADMIN_LOGIN", message: `Intento de login fallido para ${email}`, timestamp: new Date() });
-          return res.status(403).json({ status: 'ERROR', message: 'Acceso denegado' });
+      if (!admin || !bcrypt.compareSync(contrasenya, admin.password)) {
+        await Log.create({ tag: "ADMIN_LOGIN", message: `Intento de login fallido para ${email}`, timestamp: new Date() });
+        return res.status(403).json({ status: 'ERROR', message: 'Acceso denegado' });
       }
 
       // Comparar la contraseña encriptada
@@ -604,7 +604,7 @@ app.post('/api/analitzar-imatge', verificarToken, async (req, res) => {
 
   } catch (error) {
       await transaction.rollback();
-      console.error('Error al procesar la imagen:', error.response?.data || error.message);
+      console.error('Error al procesar la imagen:', error.response && error.response.data ? error.response.data : error.message);
 
       await Log.create({ 
           tag: "IMATGE_ERROR", 

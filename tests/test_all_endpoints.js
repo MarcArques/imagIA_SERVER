@@ -3,7 +3,7 @@ const readline = require('readline');
 
 const BASE_URL = 'https://imagia3.ieti.site';
 let userApiToken = '';
-let adminApiToken = '';
+let adminApiToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzM4MzQ2NTMwLCJleHAiOjE3Mzg0MzI5MzB9.iUk5UplnWAu0PQ6iMTNsRagH5j7pUPlvRGS6V3xAWzo';
 let testTelefon = '683798999';
 let testEmail = 'test_user@example.com';
 let testNickname = 'test_user';
