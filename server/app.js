@@ -245,19 +245,19 @@ app.get('/api/admin/usuaris/quota', async (req, res) => {
       // Verificar si se debe resetear la cuota diaria
       const hoy = new Date().toISOString().split('T')[0];
       if (!usuario.ultimaActualizacionQuota || usuario.ultimaActualizacionQuota !== hoy) {
-          usuario.quotaDisponible = cuotaTotal; // Resetear la cuota
+          usuario.quotaDisponible = cuotaTotal;
           usuario.ultimaActualizacionQuota = hoy;
           await usuario.save();
           await Log.create({ 
               tag: "ADMIN_QUOTA", 
-              mensaje: `Cuota reseteada para usuario ${usuario.telefon}. Nueva cuota: ${cuotaTotal}`, 
+              message: `Cuota reseteada para usuario ${usuario.telefon}. Nueva cuota: ${cuotaTotal}`, 
               timestamp: new Date() 
           });
       }
 
       await Log.create({ 
           tag: "ADMIN_QUOTA", 
-          mensaje: `Cuota obtenida para usuario ${usuario.telefon}. Disponible: ${usuario.quotaDisponible}`, 
+          message: `Cuota obtenida para usuario ${usuario.telefon}. Disponible: ${usuario.quotaDisponible}`, 
           timestamp: new Date() 
       });
 
@@ -271,7 +271,7 @@ app.get('/api/admin/usuaris/quota', async (req, res) => {
       console.error('Error en /api/admin/usuaris/quota:', error.message);
       await Log.create({ 
           tag: "ADMIN_QUOTA", 
-          mensaje: error.message ? `Error al obtener cuota: ${error.message}` : "Error desconocido al obtener cuota", 
+          message: error.message ? `Error al obtener cuota: ${error.message}` : "Error desconocido al obtener cuota", 
           timestamp: new Date() 
       });
       res.status(500).json({ status: 'ERROR', message: 'Error interno al obtener la cuota' });
@@ -516,7 +516,7 @@ app.post('/api/analitzar-imatge', verificarToken, async (req, res) => {
 
           await Log.create({ 
               tag: "QUOTA_RESET", 
-              mensaje: `Cuota reseteada para usuario ${usuario.telefon} (${usuario.pla})`, 
+              message: `Cuota reseteada para usuario ${usuario.telefon} (${usuario.pla})`, 
               timestamp: new Date() 
           }, { transaction });
       }
@@ -524,7 +524,7 @@ app.post('/api/analitzar-imatge', verificarToken, async (req, res) => {
       if (usuario.quotaDisponible <= 0) {
           await Log.create({ 
               tag: "QUOTA_EXHAURIDA", 
-              mensaje: `Usuario ${usuario.telefon} intentó realizar una petición sin cuota disponible.`,
+              message: `Usuario ${usuario.telefon} intentó realizar una petición sin cuota disponible.`,
               timestamp: new Date() 
           }, { transaction });
 
@@ -559,7 +559,7 @@ app.post('/api/analitzar-imatge', verificarToken, async (req, res) => {
 
       await Log.create({ 
           tag: "IMATGE_ANALITZADA", 
-          mensaje: `Petición realizada por ${usuario.telefon}. Quedan ${usuario.quotaDisponible} peticiones disponibles.`,
+          message: `Petición realizada por ${usuario.telefon}. Quedan ${usuario.quotaDisponible} peticiones disponibles.`,
           timestamp: new Date() 
       }, { transaction });
 
@@ -579,7 +579,7 @@ app.post('/api/analitzar-imatge', verificarToken, async (req, res) => {
 
       await Log.create({ 
           tag: "IMATGE_ERROR", 
-          mensaje: `Error al analizar imagen: ${error.message}`, 
+          message: `Error al analizar imagen: ${error.message}`, 
           timestamp: new Date() 
       });
 
