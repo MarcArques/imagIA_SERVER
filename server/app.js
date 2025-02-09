@@ -187,7 +187,7 @@ app.get('/api/usuaris/quota', verificarToken, async (req, res) => {
       : cuotaTotal;
       await Log.create({ 
           tag: "USUARIS_QUOTA", 
-          message: `Consulta de cuota realizada para usuario ${usuario.telefon}: total=${cuotaTotal}, disponible=${cuotaDisponible}`, 
+          mensaje: `Consulta de cuota realizada para usuario ${usuario.telefon}: total=${cuotaTotal}, disponible=${cuotaDisponible}`, 
           timestamp: new Date() 
       });
 
@@ -204,7 +204,7 @@ app.get('/api/usuaris/quota', verificarToken, async (req, res) => {
       console.error('Error en /api/usuaris/quota:', error.message);
       await Log.create({ 
           tag: "USUARIS_QUOTA", 
-          message: `Error al consultar la cuota: ${error.message}`, 
+          mensaje: `Error al consultar la cuota: ${error.message}`, 
           timestamp: new Date() 
       });
 
@@ -220,7 +220,7 @@ app.get('/api/admin/usuaris/quota', async (req, res) => {
       if (!telefon && !nickname && !email) {
           await Log.create({ 
               tag: "ADMIN_QUOTA", 
-              message: "Intento de consulta sin parámetros", 
+              mensaje: "Intento de consulta sin parámetros", 
               timestamp: new Date() 
           });
           return res.status(400).json({ status: 'ERROR', message: 'Se requiere al menos un parámetro (telefon, nickname o email).' });
@@ -238,7 +238,7 @@ app.get('/api/admin/usuaris/quota', async (req, res) => {
       if (!usuario) {
           await Log.create({ 
               tag: "ADMIN_QUOTA", 
-              message: `Consulta fallida: usuario no encontrado (telefon=${telefon || 'N/A'}, nickname=${nickname || 'N/A'}, email=${email || 'N/A'})`, 
+              mensaje: `Consulta fallida: usuario no encontrado (telefon=${telefon || 'N/A'}, nickname=${nickname || 'N/A'}, email=${email || 'N/A'})`, 
               timestamp: new Date() 
           });
           return res.status(404).json({ status: 'ERROR', message: 'Usuario no encontrado' });
@@ -255,14 +255,14 @@ app.get('/api/admin/usuaris/quota', async (req, res) => {
           await usuario.save();
           await Log.create({ 
               tag: "ADMIN_QUOTA", 
-              message: `Cuota reseteada para usuario ${usuario.telefon}. Nueva cuota: ${cuotaTotal}`, 
+              mensaje: `Cuota reseteada para usuario ${usuario.telefon}. Nueva cuota: ${cuotaTotal}`, 
               timestamp: new Date() 
           });
       }
 
       await Log.create({ 
           tag: "ADMIN_QUOTA", 
-          message: `Cuota obtenida para usuario ${usuario.telefon}. Disponible: ${usuario.quotaDisponible}`, 
+          mensaje: `Cuota obtenida para usuario ${usuario.telefon}. Disponible: ${usuario.quotaDisponible}`, 
           timestamp: new Date() 
       });
 
@@ -276,7 +276,7 @@ app.get('/api/admin/usuaris/quota', async (req, res) => {
       console.error('Error en /api/admin/usuaris/quota:', error.message);
       await Log.create({ 
           tag: "ADMIN_QUOTA", 
-          message: error.message ? `Error al obtener cuota: ${error.message}` : "Error desconocido al obtener cuota", 
+          mensaje: error.message ? `Error al obtener cuota: ${error.message}` : "Error desconocido al obtener cuota", 
           timestamp: new Date() 
       });
       res.status(500).json({ status: 'ERROR', message: 'Error interno al obtener la cuota' });
@@ -521,7 +521,7 @@ app.post('/api/analitzar-imatge', verificarToken, async (req, res) => {
 
           await Log.create({ 
               tag: "QUOTA_RESET", 
-              message: `Cuota reseteada para usuario ${usuario.telefon} (${usuario.pla})`, 
+              mensaje: `Cuota reseteada para usuario ${usuario.telefon} (${usuario.pla})`, 
               timestamp: new Date() 
           }, { transaction });
       }
@@ -529,7 +529,7 @@ app.post('/api/analitzar-imatge', verificarToken, async (req, res) => {
       if (usuario.quotaDisponible <= 0) {
           await Log.create({ 
               tag: "QUOTA_EXHAURIDA", 
-              message: `Usuario ${usuario.telefon} intentó realizar una petición sin cuota disponible.`,
+              mensaje: `Usuario ${usuario.telefon} intentó realizar una petición sin cuota disponible.`,
               timestamp: new Date() 
           }, { transaction });
 
@@ -564,7 +564,7 @@ app.post('/api/analitzar-imatge', verificarToken, async (req, res) => {
 
       await Log.create({ 
           tag: "IMATGE_ANALITZADA", 
-          message: `Petición realizada por ${usuario.telefon}. Quedan ${usuario.quotaDisponible} peticiones disponibles.`,
+          mensaje: `Petición realizada por ${usuario.telefon}. Quedan ${usuario.quotaDisponible} peticiones disponibles.`,
           timestamp: new Date() 
       }, { transaction });
 
@@ -584,7 +584,7 @@ app.post('/api/analitzar-imatge', verificarToken, async (req, res) => {
 
       await Log.create({ 
           tag: "IMATGE_ERROR", 
-          message: `Error al analizar imagen: ${error.message}`, 
+          mensaje: `Error al analizar imagen: ${error.message}`, 
           timestamp: new Date() 
       });
 
