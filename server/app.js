@@ -64,7 +64,7 @@ app.post('/api/usuaris/registrar', async (req, res) => {
         const { telefon, nickname, email, password } = req.body;
 
         if (!telefon || !nickname || !email || !password) {
-            await Log.create({ tag: "USUARIS_REGISTRATS", message: "Faltan parámetros en el registro", timestamp: new Date() }, { transaction });
+            await Log.create({ tag: "USUARIS_REGISTRATS", mensaje: "Faltan parámetros en el registro", timestamp: new Date() }, { transaction });
             await transaction.rollback();
             return res.status(400).json({ status: 'ERROR', message: 'Faltan parámetros obligatorios' });
         }
