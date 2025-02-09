@@ -215,7 +215,7 @@ app.get('/api/admin/usuaris/quota', async (req, res) => {
       if (!telefon && !nickname && !email) {
           await Log.create({ 
               tag: "ADMIN_QUOTA", 
-              mensaje: "Intento de consulta sin parámetros", 
+              message: "Intento de consulta sin parámetros", 
               timestamp: new Date() 
           });
           return res.status(400).json({ status: 'ERROR', message: 'Se requiere al menos un parámetro (telefon, nickname o email).' });
@@ -233,7 +233,7 @@ app.get('/api/admin/usuaris/quota', async (req, res) => {
       if (!usuario) {
           await Log.create({ 
               tag: "ADMIN_QUOTA", 
-              mensaje: `Consulta fallida: usuario no encontrado (telefon=${telefon || 'N/A'}, nickname=${nickname || 'N/A'}, email=${email || 'N/A'})`, 
+              message: `Consulta fallida: usuario no encontrado (telefon=${telefon || 'N/A'}, nickname=${nickname || 'N/A'}, email=${email || 'N/A'})`, 
               timestamp: new Date() 
           });
           return res.status(404).json({ status: 'ERROR', message: 'Usuario no encontrado' });
