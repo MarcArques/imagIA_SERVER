@@ -66,13 +66,28 @@ const Peticio = sequelize.define('peticions', {
     type: DataTypes.INTEGER, 
     allowNull: false, 
     references: { model: Usuari, key: 'id' } },
+    
 }, { timestamps: false });
 
 const Log = sequelize.define('logs', {
-    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    tag: { type: DataTypes.STRING, allowNull: false }, 
-    message: { type: DataTypes.TEXT, allowNull: false },
-    timestamp: { type: DataTypes.DATE, allowNull: false, defaultValue: Sequelize.NOW },
+    id: { 
+      type: DataTypes.INTEGER, 
+      autoIncrement: true, 
+      primaryKey: true },
+
+    tag: { 
+      type: DataTypes.STRING, 
+      allowNull: false }, 
+
+    message: { 
+      type: DataTypes.TEXT, 
+      allowNull: false },
+
+    timestamp: { 
+      type: DataTypes.DATE, 
+      allowNull: false, 
+      defaultValue: Sequelize.NOW },
+
   }, {
     tableName: 'logs',
     timestamps: false,
