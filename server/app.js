@@ -72,7 +72,7 @@ app.post('/api/usuaris/registrar', async (req, res) => {
         const usuarioExistente = await Usuari.findOne({ where: { telefon } });
 
         if (usuarioExistente) {
-            await Log.create({ tag: "USUARIS_REGISTRATS", message: `Registro fallido: usuario ${telefon} ya existe`, timestamp: new Date() }, { transaction });
+            await Log.create({ tag: "USUARIS_REGISTRATS", mensaje: `Registro fallido: usuario ${telefon} ya existe`, timestamp: new Date() }, { transaction });
             await transaction.rollback();
             return res.status(400).json({ status: 'ERROR', message: 'El usuario ya está registrado' });
         }
