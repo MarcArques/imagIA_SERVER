@@ -149,35 +149,6 @@ app.post('/api/usuaris/validar', async (req, res) => {
           return res.status(400).json({ status: 'ERROR', message: 'Código incorrecto' });
       }
 
-      // Intentar confirmar la validación con el servicio de SMS
-      const smsConfirmURL = `http://192.168.1.16:8000/api/sendsms/`;
-      const smsConfirmParams = { 
-          api_token: process.env.SMS_API_TOKEN,
-          username: process.env.SMS_USERNAME,   
-          receiver: telefon,
-          text: `Confirmación: usuario verificado`,
-      };
-
-      let smsEnviado = false;
-      try {
-          const smsResponse = await axios.get(smsConfirmURL, { params: smsConfirmParams });
-          if (smsResponse.status === 200) {
-              smsEnviado = true;
-              await Log.create({ tag: "USUARIS_VALIDATS", message: `Confirmación SMS enviada a ${telefon}`, timestamp: new Date() }, { transaction });
-          } else {
-              throw new Error(`Error en la confirmación SMS: Código ${smsResponse.status}`);
-          }
-      } catch (smsError) {
-          await Log.create({ tag: "USUARIS_VALIDATS", message: `Error al confirmar SMS para ${telefon}: ${smsError.message}`, timestamp: new Date() }, { transaction });
-          await transaction.rollback();
-          return res.status(500).json({ status: 'ERROR', message: 'No se pudo confirmar la validación por SMS' });
-      }
-
-      if (!smsEnviado) {
-          await transaction.rollback();
-          return res.status(500).json({ status: 'ERROR', message: 'No se pudo confirmar la validación por SMS' });
-      }
-
       // Generar un nuevo API Token y guardarlo en la base de datos
       const nuevoApiToken = generarApiToken();
       usuario.apiToken = nuevoApiToken;
@@ -198,7 +169,6 @@ app.post('/api/usuaris/validar', async (req, res) => {
       res.status(500).json({ status: 'ERROR', message: 'Error interno del servidor' });
   }
 });
-
 
 // **Consultar cuota**
 app.get('/api/usuaris/quota', verificarToken, async (req, res) => {
