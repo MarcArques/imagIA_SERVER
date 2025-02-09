@@ -226,8 +226,9 @@ app.get('/api/usuaris/quota', verificarToken, async (req, res) => {
 
       // Determinar la cuota total según el plan del usuario
       const cuotaTotal = usuario.pla === 'premium' ? DEFAULT_PREMIUM_QUOTA : DEFAULT_FREE_QUOTA;
-      const cuotaDisponible = usuario.quotaDisponible ?? cuotaTotal;
-
+      const cuotaDisponible = usuario.quotaDisponible !== undefined && usuario.quotaDisponible !== null 
+      ? usuario.quotaDisponible 
+      : cuotaTotal;
       await Log.create({ 
           tag: "USUARIS_QUOTA", 
           message: `Consulta de cuota realizada para usuario ${usuario.telefon}: total=${cuotaTotal}, disponible=${cuotaDisponible}`, 
