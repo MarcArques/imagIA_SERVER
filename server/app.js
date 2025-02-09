@@ -5,7 +5,7 @@ const { Usuari, sequelize, Log } = require('../database/basedatos');
 const app = express();
 const crypto = require('crypto');
 const { Op } = require("sequelize");
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 app.use(express.json());
 
 const SALT_ROUNDS = 10; 
@@ -59,72 +59,73 @@ const verificarToken = async (req, res, next) => {
 
 // **Registro de usuario**
 app.post('/api/usuaris/registrar', async (req, res) => {
-  const transaction = await sequelize.transaction(); // Iniciar transacción
-  try {
-      const { telefon, nickname, email, password } = req.body;
+    const transaction = await sequelize.transaction(); 
+    try {
+        const { telefon, nickname, email, password } = req.body;
 
-      if (!telefon || !nickname || !email || !password) {
-          await Log.create({ tag: "USUARIS_REGISTRATS", message: "Faltan parámetros en el registro", timestamp: new Date() }, { transaction });
-          await transaction.rollback();
-          return res.status(400).json({ status: 'ERROR', message: 'Faltan parámetros obligatorios' });
-      }
+        if (!telefon || !nickname || !email || !password) {
+            await Log.create({ tag: "USUARIS_REGISTRATS", message: "Faltan parámetros en el registro", timestamp: new Date() }, { transaction });
+            await transaction.rollback();
+            return res.status(400).json({ status: 'ERROR', message: 'Faltan parámetros obligatorios' });
+        }
 
-      const usuarioExistente = await Usuari.findOne({ where: { telefon } });
+        const usuarioExistente = await Usuari.findOne({ where: { telefon } });
 
-      if (usuarioExistente) {
-          await Log.create({ tag: "USUARIS_REGISTRATS", message: `Registro fallido: usuario ${telefon} ya existe`, timestamp: new Date() }, { transaction });
-          await transaction.rollback();
-          return res.status(400).json({ status: 'ERROR', message: 'El usuario ya está registrado' });
-      }
+        if (usuarioExistente) {
+            await Log.create({ tag: "USUARIS_REGISTRATS", message: `Registro fallido: usuario ${telefon} ya existe`, timestamp: new Date() }, { transaction });
+            await transaction.rollback();
+            return res.status(400).json({ status: 'ERROR', message: 'El usuario ya está registrado' });
+        }
 
-      // Hashear la contraseña antes de guardarla
-      const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+        // Generar código de validación y guardarlo en memoria temporal
+        const codi_validacio = generarCodigoValidacion();
+        codigoVerificacionTemporal[telefon] = codi_validacio;
 
-      // Generar código de validación y guardarlo en memoria temporal
-      const codi_validacio = generarCodigoValidacion();
-      codigoVerificacionTemporal[telefon] = codi_validacio;
+        // Enviar SMS de verificación
+        const smsURL = `http://192.168.1.16:8000/api/sendsms/`;
+        const smsParams = { 
+            api_token: process.env.SMS_API_TOKEN,
+            username: process.env.SMS_USERNAME,   
+            receiver: telefon,
+            text: `Tu código de verificación es: ${codi_validacio}`,
+        };
 
-      // Enviar SMS de verificación
-      const smsURL = `http://192.168.1.16:8000/api/sendsms/`;
-      const smsParams = { 
-          api_token: process.env.SMS_API_TOKEN,
-          username: process.env.SMS_USERNAME,   
-          receiver: telefon,
-          text: `Tu código de verificación es: ${codi_validacio}`,
-      };
+        try {
+            await axios.get(smsURL, { params: smsParams });
+            await Log.create({ tag: "USUARIS_REGISTRATS", message: `SMS enviado a ${telefon}`, timestamp: new Date() }, { transaction });
+        } catch (smsError) {
+            await Log.create({ tag: "USUARIS_REGISTRATS", message: `Error al enviar SMS a ${telefon}: ${smsError.message}`, timestamp: new Date() }, { transaction });
+            await transaction.rollback();
+            return res.status(500).json({ status: 'ERROR', message: 'No se pudo enviar el SMS de verificación' });
+        }
 
-      try {
-          await axios.get(smsURL, { params: smsParams });
-          await Log.create({ tag: "USUARIS_REGISTRATS", message: `SMS enviado a ${telefon}`, timestamp: new Date() }, { transaction });
-      } catch (smsError) {
-          await Log.create({ tag: "USUARIS_REGISTRATS", message: `Error al enviar SMS a ${telefon}: ${smsError.message}`, timestamp: new Date() }, { transaction });
-          await transaction.rollback();
-          return res.status(500).json({ status: 'ERROR', message: 'No se pudo enviar el SMS de verificación' });
-      }
+        // Hashear la contraseña antes de guardarla en la BD
+        const hashedPassword = bcrypt.hashSync(password, 10);
 
-      // Crear usuario en la base de datos con la contraseña hasheada
-      await Usuari.create({
-          telefon,
-          nickname,
-          email,
-          rol: 'user',
-          password: hashedPassword,
-          pla: 'Free',
-          apiToken: null,
-      }, { transaction });
+        // Crear usuario en la base de datos con la contraseña encriptada
+        await Usuari.create({
+            telefon,
+            nickname,
+            email,
+            rol: 'user',
+            password: hashedPassword,
+            pla: 'Free',
+            apiToken: null,
+        }, { transaction });
 
-      await Log.create({ tag: "USUARIS_REGISTRATS", message: `Usuario ${telefon} registrado exitosamente`, timestamp: new Date() }, { transaction });
+        await Log.create({ tag: "USUARIS_REGISTRATS", message: `Usuario ${telefon} registrado exitosamente`, timestamp: new Date() }, { transaction });
 
-      await transaction.commit();
-      res.json({ status: 'OK', message: 'Usuario registrado correctamente. Verifique su teléfono con el código recibido.' });
+        await transaction.commit();
+        res.json({ status: 'OK', message: 'Usuario registrado correctamente. Verifique su teléfono con el código recibido.' });
 
-  } catch (error) {
-      await transaction.rollback();
-      await Log.create({ tag: "USUARIS_REGISTRATS", message: `Error general en registro: ${error.message}`, timestamp: new Date() });
-      console.error('Error en /api/usuaris/registrar:', error.message);
-      return res.status(500).json({ status: 'ERROR', message: 'Error interno del servidor' });
-  }
+    } catch (error) {
+        await transaction.rollback();
+        await Log.create({ tag: "USUARIS_REGISTRATS", message: `Error general en registro: ${error.message}`, timestamp: new Date() });
+        console.error('Error en /api/usuaris/registrar:', error.message);
+        return res.status(500).json({ status: 'ERROR', message: 'Error interno del servidor' });
+    }
 });
+
   
 
 // **Validación de usuario**
