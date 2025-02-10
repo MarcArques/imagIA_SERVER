@@ -61,9 +61,9 @@ const verificarToken = async (req, res, next) => {
 app.post('/api/usuaris/registrar', async (req, res) => {
     const transaction = await sequelize.transaction(); 
     try {
-        const { telefon, nickname, email, password } = req.body;
+        const { telefon, nickname, email } = req.body;
 
-        if (!telefon || !nickname || !email || !password) {
+        if (!telefon || !nickname || !email ) {
             await Log.create({ tag: "USUARIS_REGISTRATS", mensaje: "Faltan parámetros en el registro", timestamp: new Date() }, { transaction });
             await transaction.rollback();
             return res.status(400).json({ status: 'ERROR', message: 'Faltan parámetros obligatorios' });
@@ -99,8 +99,6 @@ app.post('/api/usuaris/registrar', async (req, res) => {
             return res.status(500).json({ status: 'ERROR', message: 'No se pudo enviar el SMS de verificación' });
         }
 
-        // Hashear la contraseña antes de guardarla en la BD
-        const hashedPassword = bcrypt.hashSync(password, 10);
 
         // Crear usuario en la base de datos con la contraseña encriptada
         await Usuari.create({
@@ -108,7 +106,7 @@ app.post('/api/usuaris/registrar', async (req, res) => {
             nickname,
             email,
             rol: 'user',
-            password: hashedPassword,
+            password: null,
             pla: 'Free',
             apiToken: null,
         }, { transaction });
