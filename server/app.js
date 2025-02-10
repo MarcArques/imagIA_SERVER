@@ -32,30 +32,6 @@ function generarCodigoValidacion() {
 
 const codigoVerificacionTemporal = {};
 
-const verificarToken = async (req, res, next) => {
-  try {
-    const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : null;
-
-    if (!token) {
-      return res.status(401).json({ status: 'ERROR', message: 'Token requerido' });
-    }
-
-    console.log(`Token recibido: ${token}`);
-
-    const usuario = await Usuari.findOne({ where: { apiToken: token } });
-
-    if (!usuario) {
-      return res.status(403).json({ status: 'ERROR', message: 'Token inválido' });
-    }
-
-    req.usuario = usuario;
-    next();
-  } catch (error) {
-    console.error('Error en la verificación del token:', error.message);
-    return res.status(401).json({ status: 'ERROR', message: 'Token inválido' });
-  }
-};
-
 const authMiddleware = async (req, res, next) => {
     try {
         const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : null;
@@ -209,9 +185,9 @@ app.post('/api/usuaris/validar', async (req, res) => {
 });
 
 // **Consultar cuota**
-app.get('/api/usuaris/quota', verificarToken, async (req, res) => {
+app.get('/api/usuaris/quota', authMiddleware, async (req, res) => {
   try {
-      const usuario = req.usuario;
+      const usuario = req.params.usuario;
 
       // Determinar la cuota total según el plan del usuario
       const cuotaTotal = usuario.pla === 'premium' ? DEFAULT_PREMIUM_QUOTA : DEFAULT_FREE_QUOTA;
@@ -246,7 +222,7 @@ app.get('/api/usuaris/quota', verificarToken, async (req, res) => {
 });
 
 
-app.get('/api/admin/usuaris/quota', async (req, res) => {
+app.get('/api/admin/usuaris/quota', adminMiddleware, async (req, res) => {
   try {
       const { telefon, nickname, email } = req.query;
 
@@ -318,7 +294,7 @@ app.get('/api/admin/usuaris/quota', async (req, res) => {
 
 
 
-app.post('/api/admin/usuaris/quota/actualitzar', async (req, res) => {
+app.post('/api/admin/usuaris/quota/actualitzar', adminMiddleware, async (req, res) => {
   const transaction = await sequelize.transaction(); 
 
   try {
@@ -400,7 +376,7 @@ app.post('/api/admin/usuaris/quota/actualitzar', async (req, res) => {
 
 
 // **Obtener lista de usuarios**
-app.get('/api/admin/usuaris', async (req, res) => {
+app.get('/api/admin/usuaris', adminMiddleware, async (req, res) => {
   try {
       const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : null;
 
@@ -435,7 +411,7 @@ app.get('/api/admin/usuaris', async (req, res) => {
   }
 });
 
-app.post('/api/admin/usuaris/pla/actualitzar', async (req, res) => {
+app.post('/api/admin/usuaris/pla/actualitzar', adminMiddleware, async (req, res) => {
     try {
         const { telefon, nickname, email, pla } = req.body;
         const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : null;
@@ -480,7 +456,7 @@ app.post('/api/admin/usuaris/pla/actualitzar', async (req, res) => {
 
 
 // **Login de administrador**
-app.post('/api/admin/usuaris/login', async (req, res) => {
+app.post('/api/admin/usuaris/login', adminMiddleware, async (req, res) => {
   const transaction = await sequelize.transaction();
   
   try {
@@ -513,7 +489,7 @@ app.post('/api/admin/usuaris/login', async (req, res) => {
   }
 });
 
-app.get('/api/admin/logs', verificarToken, async (req, res) => {
+app.get('/api/admin/logs', adminMiddleware, async (req, res) => {
   try {
       if (req.usuario.rol !== 'admin') {
           return res.status(403).json({ status: 'ERROR', message: 'Acceso denegado' });
@@ -547,7 +523,7 @@ app.get('/api/admin/logs', verificarToken, async (req, res) => {
   }
 });
 
-app.get('/api/admin/stats', verificarToken, async (req, res) => {
+app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
   try {
       if (req.usuario.rol !== 'admin') {
           return res.status(403).json({ status: 'ERROR', message: 'Acceso denegado' });
@@ -581,7 +557,7 @@ app.get('/api/admin/stats', verificarToken, async (req, res) => {
 });
 
   
-app.post('/api/analitzar-imatge', verificarToken, async (req, res) => {
+app.post('/api/analitzar-imatge', authMiddleware, async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
