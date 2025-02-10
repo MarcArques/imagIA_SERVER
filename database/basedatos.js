@@ -42,7 +42,7 @@ const Usuari = sequelize.define('usuaris', {
 
   password: { 
     type: DataTypes.STRING, 
-    allowNull: false 
+    allowNull: true 
   },
 
   apiToken: { 

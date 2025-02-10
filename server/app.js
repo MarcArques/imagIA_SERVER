@@ -400,6 +400,49 @@ app.get('/api/admin/usuaris', async (req, res) => {
   }
 });
 
+app.post('/api/admin/usuaris/pla/actualitzar', async (req, res) => {
+    try {
+        const { telefon, nickname, email, pla } = req.body;
+        const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : null;
+
+        if (!token) {
+            await Log.create({ tag: "ADMIN_USUARIS_PLA", mensaje: "Intento de actualización sin token", timestamp: new Date() });
+            return res.status(401).json({ status: 'ERROR', message: 'No autorizado' });
+        }
+
+        const admin = await Usuari.findOne({ where: { apiToken: token, rol: 'admin' } });
+        if (!admin) {
+            await Log.create({ tag: "ADMIN_USUARIS_PLA", mensaje: `Acceso denegado para token ${token}`, timestamp: new Date() });
+            return res.status(403).json({ status: 'ERROR', message: 'Acceso denegado' });
+        }
+
+        let usuario = await Usuari.findOne({ where: { telefon } }) ||
+                      await Usuari.findOne({ where: { nickname } }) ||
+                      await Usuari.findOne({ where: { email } });
+
+        if (!usuario) {
+            await Log.create({ tag: "ADMIN_USUARIS_PLA", mensaje: `Intento de actualización fallido: usuario no encontrado (${telefon || nickname || email})`, timestamp: new Date() });
+            return res.status(404).json({ status: 'ERROR', message: 'Usuario no encontrado' });
+        }
+
+        usuario.pla = pla;
+        await usuario.save();
+
+        await Log.create({
+            tag: "ADMIN_USUARIS_PLA",
+            mensaje: `Plan actualizado: ${usuario.nickname} (${usuario.telefon}) → ${pla}`,
+            timestamp: new Date()
+        });
+
+        res.json({ status: 'OK', message: 'Plan de usuario actualizado', data: usuario });
+
+    } catch (error) {
+        console.error('Error en la actualización del plan:', error.message);
+        await Log.create({ tag: "ADMIN_USUARIS_PLA", mensaje: `Error en actualización: ${error.message}`, timestamp: new Date() });
+        res.status(500).json({ status: 'ERROR', message: 'Error interno del servidor' });
+    }
+});
+
 
 // **Login de administrador**
 app.post('/api/admin/usuaris/login', async (req, res) => {
