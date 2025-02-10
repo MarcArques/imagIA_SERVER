@@ -1,14 +1,13 @@
 require('dotenv').config(); 
 const axios = require('axios');
 const express = require('express');
-const { Usuari, sequelize, Log } = require('../database/basedatos');
+const { Usuari, sequelize, Log, Peticio } = require('../database/basedatos');
 const app = express();
 const crypto = require('crypto');
 const { Op } = require("sequelize");
 const bcrypt = require('bcrypt');
 app.use(express.json());
 
-const SALT_ROUNDS = 10; 
 const PORT = process.env.PORT || 3000;
 const DEFAULT_FREE_QUOTA = 20;
 const DEFAULT_PREMIUM_QUOTA = 40; 
@@ -57,13 +56,49 @@ const verificarToken = async (req, res, next) => {
   }
 };
 
+const authMiddleware = async (req, res, next) => {
+    try {
+        const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : null;
+
+        if (!token) {
+            return res.status(401).json({ status: 'ERROR', message: 'Token requerido' });
+        }
+
+        const usuario = await Usuari.findOne({ where: { apiToken: token } });
+
+        if (!usuario) {
+            return res.status(403).json({ status: 'ERROR', message: 'Token inválido' });
+        }
+
+        req.usuario = usuario;
+        next();
+    } catch (error) {
+        console.error('Error en authMiddleware:', error.message);
+        return res.status(500).json({ status: 'ERROR', message: 'Error interno en la autenticación' });
+    }
+};
+
+const adminMiddleware = async (req, res, next) => {
+    try {
+        await authMiddleware(req, res, async () => {
+            if (req.usuario.rol !== 'admin') {
+                return res.status(403).json({ status: 'ERROR', message: 'Acceso denegado, permisos insuficientes' });
+            }
+            next();
+        });
+    } catch (error) {
+        console.error('Error en adminMiddleware:', error.message);
+        return res.status(500).json({ status: 'ERROR', message: 'Error interno en la autenticación' });
+    }
+};
+
 // **Registro de usuario**
 app.post('/api/usuaris/registrar', async (req, res) => {
     const transaction = await sequelize.transaction(); 
     try {
-        const { telefon, nickname, email } = req.body;
+        const { telefon, nickname, email, codi_validacio } = req.body;
 
-        if (!telefon || !nickname || !email ) {
+        if (!telefon || !nickname || !email || !codi_validacio) {
             await Log.create({ tag: "USUARIS_REGISTRATS", mensaje: "Faltan parámetros en el registro", timestamp: new Date() }, { transaction });
             await transaction.rollback();
             return res.status(400).json({ status: 'ERROR', message: 'Faltan parámetros obligatorios' });
@@ -77,44 +112,44 @@ app.post('/api/usuaris/registrar', async (req, res) => {
             return res.status(400).json({ status: 'ERROR', message: 'El usuario ya está registrado' });
         }
 
-        // Generar código de validación y guardarlo en memoria temporal
-        const codi_validacio = generarCodigoValidacion();
-        codigoVerificacionTemporal[telefon] = codi_validacio;
-
-        // Enviar SMS de verificación
-        const smsURL = `http://192.168.1.16:8000/api/sendsms/`;
-        const smsParams = { 
-            api_token: process.env.SMS_API_TOKEN,
-            username: process.env.SMS_USERNAME,   
-            receiver: telefon,
-            text: `Tu código de verificación es: ${codi_validacio}`,
-        };
-
-        try {
-            await axios.get(smsURL, { params: smsParams });
-            await Log.create({ tag: "USUARIS_REGISTRATS", mensaje: `SMS enviado a ${telefon}`, timestamp: new Date() }, { transaction });
-        } catch (smsError) {
-            await Log.create({ tag: "USUARIS_REGISTRATS", mensaje: `Error al enviar SMS a ${telefon}: ${smsError.message}`, timestamp: new Date() }, { transaction });
+        // **Verificar que el usuario haya ingresado correctamente el código SMS**
+        if (codigoVerificacionTemporal[telefon] !== codi_validacio) {
+            await Log.create({ tag: "USUARIS_REGISTRATS", mensaje: `Código incorrecto para ${telefon}`, timestamp: new Date() }, { transaction });
             await transaction.rollback();
-            return res.status(500).json({ status: 'ERROR', message: 'No se pudo enviar el SMS de verificación' });
+            return res.status(400).json({ status: 'ERROR', message: 'Código incorrecto. No se puede registrar el usuario.' });
         }
 
+        // **Generar el API Token**
+        const apiToken = generarApiToken();
 
-        // Crear usuario en la base de datos con la contraseña encriptada
-        await Usuari.create({
+        // **Registrar usuario en la base de datos**
+        const nuevoUsuario = await Usuari.create({
             telefon,
             nickname,
             email,
             rol: 'user',
-            password: null,
+            password: null,  // El usuario no necesita contraseña
             pla: 'Free',
-            apiToken: null,
+            apiToken,  // Asignar el token generado
         }, { transaction });
 
         await Log.create({ tag: "USUARIS_REGISTRATS", mensaje: `Usuario ${telefon} registrado exitosamente`, timestamp: new Date() }, { transaction });
 
+        // **Eliminar el código de verificación usado**
+        delete codigoVerificacionTemporal[telefon];
+
         await transaction.commit();
-        res.json({ status: 'OK', message: 'Usuario registrado correctamente. Verifique su teléfono con el código recibido.' });
+        res.json({ 
+            status: 'OK', 
+            message: 'Usuario registrado correctamente.', 
+            apiToken: nuevoUsuario.apiToken, 
+            usuario: {
+                id: nuevoUsuario.id,
+                telefon: nuevoUsuario.telefon,
+                nickname: nuevoUsuario.nickname,
+                email: nuevoUsuario.email
+            }
+        });
 
     } catch (error) {
         await transaction.rollback();
@@ -123,7 +158,6 @@ app.post('/api/usuaris/registrar', async (req, res) => {
         return res.status(500).json({ status: 'ERROR', message: 'Error interno del servidor' });
     }
 });
-
   
 
 // **Validación de usuario**
