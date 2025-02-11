@@ -644,7 +644,7 @@ app.post('/api/analitzar-imatge', authMiddleware, async (req, res) => {
   }
 });
 
-app.get('/api/usuaris/historial/prompts', verificarToken, async (req, res) => {
+app.get('/api/usuaris/historial/prompts', adminMiddleware, async (req, res) => {
     try {
         const usuario = req.usuario; // Usuario autenticado por el middleware
 
