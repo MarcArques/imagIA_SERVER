@@ -644,7 +644,7 @@ app.post('/api/analitzar-imatge', authMiddleware, async (req, res) => {
   }
 });
 
-app.get('/api/usuaris/historial/prompts', adminMiddleware, async (req, res) => {
+app.get('/api/usuaris/historial/prompts', authMiddleware, async (req, res) => {
     try {
         const usuario = req.usuario; // Usuario autenticado por el middleware
 
@@ -659,7 +659,7 @@ app.get('/api/usuaris/historial/prompts', adminMiddleware, async (req, res) => {
         // Guardar en logs la consulta
         await Log.create({ 
             tag: "USUARIS_HISTORIAL", 
-            message: `Historial de prompts consultado para usuario ${usuario.telefon}`, 
+            mensaje: `Historial de prompts consultado para usuario ${usuario.telefon}`, 
             timestamp: new Date() 
         });
 
@@ -674,7 +674,7 @@ app.get('/api/usuaris/historial/prompts', adminMiddleware, async (req, res) => {
         
         await Log.create({ 
             tag: "USUARIS_HISTORIAL_ERROR", 
-            message: `Error al obtener historial de prompts: ${error.message}`, 
+            mensaje: `Error al obtener historial de prompts: ${error.message}`, 
             timestamp: new Date() 
         });
 

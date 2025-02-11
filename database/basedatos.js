@@ -92,10 +92,10 @@ const Peticio = sequelize.define('peticions', {
     allowNull: false 
   },
 
-  timestamp: { 
+  createdAt: { 
     type: DataTypes.DATE, 
     allowNull: false, 
-    defaultValue: Sequelize.NOW // Asigna automáticamente la fecha y hora actual
+    defaultValue: Sequelize.NOW 
   },
 
   usuariID: { 
@@ -103,7 +103,7 @@ const Peticio = sequelize.define('peticions', {
     allowNull: false, 
     references: { model: Usuari, key: 'id' } 
   },
-  
+
   model: { 
     type: DataTypes.STRING, 
     allowNull: false 
