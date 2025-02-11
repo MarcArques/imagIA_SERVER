@@ -600,8 +600,10 @@ app.post('/api/analitzar-imatge', authMiddleware, async (req, res) => {
             model, images, stream
         });
   
+        console.log("🔍 Respuesta de la IA:", JSON.stringify(response.data, null, 2));
+
         // Obtener el prompt generado por la IA
-        const iaPrompt = response.data.prompt || 'No se encontró el prompt en la respuesta de la IA.';
+        const iaPrompt = response.data.prompt || response.data.message || 'No se encontró el prompt en la respuesta de la IA.';
   
         // Guardar la petición en la base de datos con el prompt generado por la IA y el modelo usado
         const nuevaPeticio = await Peticio.create({
