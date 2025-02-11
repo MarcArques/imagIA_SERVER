@@ -456,7 +456,7 @@ app.post('/api/admin/usuaris/pla/actualitzar', adminMiddleware, async (req, res)
 
 
 // **Login de administrador**
-app.post('/api/admin/usuaris/login', adminMiddleware, async (req, res) => {
+app.post('/api/admin/usuaris/login', async (req, res) => {
   const transaction = await sequelize.transaction();
   
   try {
@@ -590,17 +590,15 @@ app.post('/api/analitzar-imatge', authMiddleware, async (req, res) => {
         }
   
         // Validar la solicitud
-        const { images, stream, model } = req.body;
+        const { images, stream, model, prompt } = req.body;
         if (!images || !Array.isArray(images) || images.length === 0 || !model) {
             return res.status(400).json({ status: 'ERROR', message: 'Faltan parámetros obligatorios en la petición' });
         }
-  
         // Enviar petición al servicio externo de análisis de imagen
         const response = await axios.post('http://192.168.1.14:11434/api/generate', {
-            model, images, stream
+            model, prompt, images, stream
         });
   
-        console.log("🔍 Respuesta de la IA:", JSON.stringify(response.data, null, 2));
 
         // Obtener el prompt generado por la IA
         const iaPrompt = response.data && response.data.response ? response.data.response.trim() : "No se encontró el prompt en la respuesta de la IA.";
@@ -609,7 +607,6 @@ app.post('/api/analitzar-imatge', authMiddleware, async (req, res) => {
         }
         
         const promptFinal = iaPrompt || "La IA no generó una respuesta válida.";
-        console.log("📜 Respuesta generada por la IA:", promptFinal);  
         // Guardar la petición en la base de datos con el prompt generado por la IA y el modelo usado
         const nuevaPeticio = await Peticio.create({
             prompt: iaPrompt, 
@@ -697,4 +694,3 @@ app.get('/api/usuaris/historial/prompts', authMiddleware, async (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor en ejecución en el puerto ${PORT}`);
 });
-

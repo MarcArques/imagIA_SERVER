@@ -13,7 +13,7 @@ const base64Image = imageBuffer.toString('base64');
 async function runTests() {
     try {
         console.log('🔍 Iniciando pruebas de la API...\n');
-
+        console.log(base64Image);
         // 🟢 1. Analizar imagen (control de cuota)
         console.log('📌 Enviando imagen para análisis...');
         const imageAnalysisResponse = await axios.post(`${BASE_URL}/api/analitzar-imatge`, {
