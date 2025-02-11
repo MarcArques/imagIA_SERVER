@@ -103,6 +103,11 @@ const Peticio = sequelize.define('peticions', {
     allowNull: false, 
     references: { model: Usuari, key: 'id' } 
   },
+  
+  model: { 
+    type: DataTypes.STRING, 
+    allowNull: false 
+  },
 
 }, { timestamps: false });
 
