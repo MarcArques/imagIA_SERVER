@@ -139,7 +139,7 @@ app.post('/api/usuaris/registrar', async (req, res) => {
 
 // **Validación de usuario**
 app.post('/api/usuaris/validar', async (req, res) => {
-  const transaction = await sequelize.transaction(); // Iniciar transacción
+  const transaction = await sequelize.transaction();
   try {
       const { telefon, codi_validacio } = req.body;
 
@@ -558,102 +558,103 @@ app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
 
   
 app.post('/api/analitzar-imatge', authMiddleware, async (req, res) => {
-  const transaction = await sequelize.transaction();
-
-  try {
-      const usuario = req.usuario;
-      const cuotaMaxima = usuario.pla === 'premium' ? 40 : 20;
-      const fechaActual = new Date().toISOString().split('T')[0];
-
-      // Resetear cuota si es un nuevo día
-      if (usuario.ultimaActualizacionQuota !== fechaActual) {
-          usuario.quotaDisponible = cuotaMaxima;
-          usuario.ultimaActualizacionQuota = fechaActual;
-          await usuario.save({ transaction });
-
-          await Log.create({ 
-              tag: "QUOTA_RESET", 
-              mensaje: `Cuota reseteada para usuario ${usuario.telefon} (${usuario.pla})`, 
-              timestamp: new Date() 
-          }, { transaction });
-      }
-
-      if (usuario.quotaDisponible <= 0) {
-          await Log.create({ 
-              tag: "QUOTA_EXHAURIDA", 
-              mensaje: `Usuario ${usuario.telefon} intentó realizar una petición sin cuota disponible.`,
-              timestamp: new Date() 
-          }, { transaction });
-
-          await transaction.commit();
-          return res.status(402).json({ status: 'ERROR', message: 'Cuota diaria agotada. No puedes realizar más peticiones hoy.' });
-      }
-
-      // Validar la solicitud
-      const { prompt, images, stream, model } = req.body;
-      if (!prompt || !images || !Array.isArray(images) || images.length === 0 || !model) {
-          return res.status(400).json({ status: 'ERROR', message: 'Faltan parámetros obligatorios en la petición' });
-      }
-
-      // Enviar petición al servicio externo de análisis de imagen
-      const response = await axios.post('http://192.168.1.14:11434/api/generate', {
-          model, prompt, images, stream
-      });
-
-      const ollamaPrompt = response.data.prompt || 'No se encontró el prompt en la respuesta de Ollama.';
-
-      // Guardar la petición en la base de datos
-      const nuevaPeticio = await Peticio.create({
-          prompt,
-          imatges: JSON.stringify(images),
-          model,
-          usuariID: usuario.id,
-      }, { transaction });
-
-      // Actualizar cuota disponible
-      usuario.quotaDisponible = Math.max(0, usuario.quotaDisponible - 1);
-      await usuario.save({ transaction });
-
-      await Log.create({ 
-          tag: "IMATGE_ANALITZADA", 
-          mensaje: `Petición realizada por ${usuario.telefon}. Quedan ${usuario.quotaDisponible} peticiones disponibles.`,
-          timestamp: new Date() 
-      }, { transaction });
-
-      await transaction.commit();
-
-      res.json({
-          status: 'OK',
-          message: 'Imagen procesada correctamente',
-          prompt: ollamaPrompt,
-          data: response.data,
-          savedPromptId: nuevaPeticio.id 
-      });
-
-  } catch (error) {
-      await transaction.rollback();
-      console.error('Error al procesar la imagen:', error.response && error.response.data ? error.response.data : error.message);
-
-      await Log.create({ 
-          tag: "IMATGE_ERROR", 
-          mensaje: `Error al analizar imagen: ${error.message}`, 
-          timestamp: new Date() 
-      });
-
-      res.status(500).json({ status: 'ERROR', message: 'Error interno al procesar la imagen' });
-  }
-});
+    const transaction = await sequelize.transaction();
+  
+    try {
+        const usuario = req.usuario;
+        const cuotaMaxima = usuario.pla === 'premium' ? 40 : 20;
+        const fechaActual = new Date().toISOString().split('T')[0];
+  
+        // Resetear cuota si es un nuevo día
+        if (usuario.ultimaActualizacionQuota !== fechaActual) {
+            usuario.quotaDisponible = cuotaMaxima;
+            usuario.ultimaActualizacionQuota = fechaActual;
+            await usuario.save({ transaction });
+  
+            await Log.create({ 
+                tag: "QUOTA_RESET", 
+                mensaje: `Cuota reseteada para usuario ${usuario.telefon} (${usuario.pla})`, 
+                timestamp: new Date() 
+            }, { transaction });
+        }
+  
+        if (usuario.quotaDisponible <= 0) {
+            await Log.create({ 
+                tag: "QUOTA_EXHAURIDA", 
+                mensaje: `Usuario ${usuario.telefon} intentó realizar una petición sin cuota disponible.`,
+                timestamp: new Date() 
+            }, { transaction });
+  
+            await transaction.commit();
+            return res.status(402).json({ status: 'ERROR', message: 'Cuota diaria agotada. No puedes realizar más peticiones hoy.' });
+        }
+  
+        // Validar la solicitud
+        const { images, stream, model } = req.body;
+        if (!images || !Array.isArray(images) || images.length === 0 || !model) {
+            return res.status(400).json({ status: 'ERROR', message: 'Faltan parámetros obligatorios en la petición' });
+        }
+  
+        // Enviar petición al servicio externo de análisis de imagen
+        const response = await axios.post('http://192.168.1.14:11434/api/generate', {
+            model, images, stream
+        });
+  
+        // Obtener el prompt generado por la IA
+        const iaPrompt = response.data.prompt || 'No se encontró el prompt en la respuesta de la IA.';
+  
+        // Guardar la petición en la base de datos con el prompt generado por la IA
+        const nuevaPeticio = await Peticio.create({
+            prompt: iaPrompt, 
+            usuariID: usuario.id,
+            timestamp: new Date(),
+        }, { transaction });
+  
+        // Actualizar cuota disponible
+        usuario.quotaDisponible = Math.max(0, usuario.quotaDisponible - 1);
+        await usuario.save({ transaction });
+  
+        await Log.create({ 
+            tag: "IMATGE_ANALITZADA", 
+            mensaje: `Petición realizada por ${usuario.telefon}. Quedan ${usuario.quotaDisponible} peticiones disponibles.`,
+            timestamp: new Date() 
+        }, { transaction });
+  
+        await transaction.commit();
+  
+        res.json({
+            status: 'OK',
+            message: 'Imagen procesada correctamente',
+            prompt: iaPrompt,
+            data: response.data,
+            savedPromptId: nuevaPeticio.id 
+        });
+  
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Error al procesar la imagen:', error.response && error.response.data ? error.response.data : error.message);
+  
+        await Log.create({ 
+            tag: "IMATGE_ERROR", 
+            mensaje: `Error al analizar imagen: ${error.message}`, 
+            timestamp: new Date() 
+        });
+  
+        res.status(500).json({ status: 'ERROR', message: 'Error interno al procesar la imagen' });
+    }
+  });
+  
 
 app.get('/api/usuaris/historial/prompts', authMiddleware, async (req, res) => {
     try {
-        const usuario = req.usuario; // Usuario autenticado por el middleware
+        const usuario = req.usuario;
 
         // Obtener el historial de prompts del usuario
         const historial = await Peticio.findAll({
             where: { usuariID: usuario.id },
             attributes: ['id', 'prompt', 'model', 'createdAt'],
             order: [['createdAt', 'DESC']],
-            limit: 50 // Máximo 50 registros por defecto
+            limit: 50 
         });
 
         // Guardar en logs la consulta
