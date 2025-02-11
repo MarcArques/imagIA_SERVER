@@ -16,6 +16,10 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
+const imagePath = path.resolve(__dirname, '../img/img2.png');
+const imageBuffer = fs.readFileSync(imagePath);
+const base64Image = imageBuffer.toString('base64');
+
 async function runTests() {
     try {
         console.log('🔍 Iniciando pruebas de la API...\n');
@@ -120,7 +124,7 @@ async function runTests() {
                 console.log('📌 Enviando imagen para análisis...');
                 const imageAnalysisResponse = await axios.post(`${BASE_URL}/api/analitzar-imatge`, {
                     prompt: "Test de imagen",
-                    images: ["base64_encoded_image_data"],
+                    images: [base64Image],
                     stream: false,
                     model: "imagenAI"
                 }, {

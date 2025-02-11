@@ -92,28 +92,19 @@ const Peticio = sequelize.define('peticions', {
     allowNull: false 
   },
 
-  imatges: { 
-    type: DataTypes.STRING, 
-    allowNull: false 
-  },
-
-  model: { 
-    type: DataTypes.STRING, 
-    allowNull: false 
+  timestamp: { 
+    type: DataTypes.DATE, 
+    allowNull: false, 
+    defaultValue: Sequelize.NOW // Asigna automáticamente la fecha y hora actual
   },
 
   usuariID: { 
     type: DataTypes.INTEGER, 
     allowNull: false, 
-    references: { 
-      model: Usuari, 
-      key: 'id' 
-    } 
-  }
-}, { 
-  tableName: 'peticions',
-  timestamps: false 
-});
+    references: { model: Usuari, key: 'id' } 
+  },
+
+}, { timestamps: false });
 
 // **Definición del modelo Log**
 const Log = sequelize.define('logs', {
