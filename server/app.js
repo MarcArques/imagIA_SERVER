@@ -187,7 +187,7 @@ app.post('/api/usuaris/validar', async (req, res) => {
 // **Consultar cuota**
 app.get('/api/usuaris/quota', authMiddleware, async (req, res) => {
   try {
-      const usuario = req.params.usuario;
+      const usuario = req.usuario;
 
       // Determinar la cuota total según el plan del usuario
       const cuotaTotal = usuario.pla === 'premium' ? DEFAULT_PREMIUM_QUOTA : DEFAULT_FREE_QUOTA;
