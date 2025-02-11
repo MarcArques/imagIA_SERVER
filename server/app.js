@@ -603,9 +603,10 @@ app.post('/api/analitzar-imatge', authMiddleware, async (req, res) => {
         // Obtener el prompt generado por la IA
         const iaPrompt = response.data.prompt || 'No se encontró el prompt en la respuesta de la IA.';
   
-        // Guardar la petición en la base de datos con el prompt generado por la IA
+        // Guardar la petición en la base de datos con el prompt generado por la IA y el modelo usado
         const nuevaPeticio = await Peticio.create({
             prompt: iaPrompt, 
+            model: model, 
             usuariID: usuario.id,
             timestamp: new Date(),
         }, { transaction });
@@ -643,6 +644,7 @@ app.post('/api/analitzar-imatge', authMiddleware, async (req, res) => {
         res.status(500).json({ status: 'ERROR', message: 'Error interno al procesar la imagen' });
     }
   });
+  
   
 
 app.get('/api/usuaris/historial/prompts', authMiddleware, async (req, res) => {
