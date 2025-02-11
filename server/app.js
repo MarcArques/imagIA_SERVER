@@ -644,6 +644,44 @@ app.post('/api/analitzar-imatge', authMiddleware, async (req, res) => {
   }
 });
 
+app.get('/api/usuaris/historial/prompts', verificarToken, async (req, res) => {
+    try {
+        const usuario = req.usuario; // Usuario autenticado por el middleware
+
+        // Obtener el historial de prompts del usuario
+        const historial = await Peticio.findAll({
+            where: { usuariID: usuario.id },
+            attributes: ['id', 'prompt', 'model', 'createdAt'],
+            order: [['createdAt', 'DESC']],
+            limit: 50 // Máximo 50 registros por defecto
+        });
+
+        // Guardar en logs la consulta
+        await Log.create({ 
+            tag: "USUARIS_HISTORIAL", 
+            message: `Historial de prompts consultado para usuario ${usuario.telefon}`, 
+            timestamp: new Date() 
+        });
+
+        res.json({
+            status: 'OK',
+            message: 'Historial de prompts obtenido correctamente',
+            data: historial
+        });
+
+    } catch (error) {
+        console.error('Error en /api/usuaris/historial/prompts:', error.message);
+        
+        await Log.create({ 
+            tag: "USUARIS_HISTORIAL_ERROR", 
+            message: `Error al obtener historial de prompts: ${error.message}`, 
+            timestamp: new Date() 
+        });
+
+        res.status(500).json({ status: 'ERROR', message: 'Error interno al obtener historial' });
+    }
+});
+
 
 // **Iniciar el servidor**
 app.listen(PORT, '0.0.0.0', () => {
