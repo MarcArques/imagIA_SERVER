@@ -638,7 +638,7 @@ app.post('/api/analitzar-imatge', authMiddleware, async (req, res) => {
         res.json({
             status: 'OK',
             message: 'Imagen procesada correctamente',
-            prompt: iaPrompt,
+            prompt: promptFinal,
             data: response.data,
             savedPromptId: nuevaPeticio.id 
         });
