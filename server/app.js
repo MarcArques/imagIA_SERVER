@@ -564,69 +564,77 @@ app.post('/api/analitzar-imatge', authMiddleware, async (req, res) => {
         const usuario = req.usuario;
         const cuotaMaxima = usuario.pla === 'premium' ? 40 : 20;
         const fechaActual = new Date().toISOString().split('T')[0];
-  
+
         // Resetear cuota si es un nuevo día
         if (usuario.ultimaActualizacionQuota !== fechaActual) {
             usuario.quotaDisponible = cuotaMaxima;
             usuario.ultimaActualizacionQuota = fechaActual;
             await usuario.save({ transaction });
-  
+
             await Log.create({ 
                 tag: "QUOTA_RESET", 
                 mensaje: `Cuota reseteada para usuario ${usuario.telefon} (${usuario.pla})`, 
                 timestamp: new Date() 
             }, { transaction });
         }
-  
+
         if (usuario.quotaDisponible <= 0) {
             await Log.create({ 
                 tag: "QUOTA_EXHAURIDA", 
                 mensaje: `Usuario ${usuario.telefon} intentó realizar una petición sin cuota disponible.`,
                 timestamp: new Date() 
             }, { transaction });
-  
+
             await transaction.commit();
             return res.status(402).json({ status: 'ERROR', message: 'Cuota diaria agotada. No puedes realizar más peticiones hoy.' });
         }
-  
+
         // Validar la solicitud
         const { images, stream, model, prompt } = req.body;
         if (!images || !Array.isArray(images) || images.length === 0 || !model) {
             return res.status(400).json({ status: 'ERROR', message: 'Faltan parámetros obligatorios en la petición' });
         }
+
         // Enviar petición al servicio externo de análisis de imagen
         const response = await axios.post('http://192.168.1.14:11434/api/generate', {
             model, prompt, images, stream
         });
-  
 
         // Obtener el prompt generado por la IA
-        const iaPrompt = response.data && response.data.response ? response.data.response.trim() : "No se encontró el prompt en la respuesta de la IA.";
+        let iaPrompt = response.data && response.data.response ? response.data.response.trim() : "No se encontró el prompt en la respuesta de la IA.";
+
         if (!iaPrompt) {
             console.warn("⚠️ La IA no generó ninguna respuesta. Se devolverá un mensaje de error.");
         }
-        
+
+        // Cortar la respuesta en el primer punto "."
+        const puntoIndex = iaPrompt.indexOf(".");
+        if (puntoIndex !== -1) {
+            iaPrompt = iaPrompt.substring(0, puntoIndex + 1); // Incluir el primer punto
+        }
+
         const promptFinal = iaPrompt || "La IA no generó una respuesta válida.";
+
         // Guardar la petición en la base de datos con el prompt generado por la IA y el modelo usado
         const nuevaPeticio = await Peticio.create({
-            prompt: iaPrompt, 
+            prompt: promptFinal, 
             model: model, 
             usuariID: usuario.id,
             timestamp: new Date(),
         }, { transaction });
-  
+
         // Actualizar cuota disponible
         usuario.quotaDisponible = Math.max(0, usuario.quotaDisponible - 1);
         await usuario.save({ transaction });
-  
+
         await Log.create({ 
             tag: "IMATGE_ANALITZADA", 
             mensaje: `Petición realizada por ${usuario.telefon}. Quedan ${usuario.quotaDisponible} peticiones disponibles.`,
             timestamp: new Date() 
         }, { transaction });
-  
+
         await transaction.commit();
-  
+
         res.json({
             status: 'OK',
             message: 'Imagen procesada correctamente',
@@ -634,21 +642,21 @@ app.post('/api/analitzar-imatge', authMiddleware, async (req, res) => {
             data: response.data,
             savedPromptId: nuevaPeticio.id 
         });
-  
+
     } catch (error) {
         await transaction.rollback();
         console.error('Error al procesar la imagen:', error.response && error.response.data ? error.response.data : error.message);
-  
+
         await Log.create({ 
             tag: "IMATGE_ERROR", 
             mensaje: `Error al analizar imagen: ${error.message}`, 
             timestamp: new Date() 
         });
-  
+
         res.status(500).json({ status: 'ERROR', message: 'Error interno al procesar la imagen' });
     }
-  });
-  
+});
+
   
 
 app.get('/api/usuaris/historial/prompts', authMiddleware, async (req, res) => {
